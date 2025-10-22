@@ -1,0 +1,62 @@
+{
+	"folders": [
+		{
+			"name": "⭐ ESP32 Platformio (Principal)",
+			"path": "."
+		},
+		{
+			"name": "⚙️ bin-tools-py",
+			"path": "./bin-tools-py"
+		},
+		{
+			"name": "🔟 esp32-bin-files",
+			"path": "../esp32-bin-files"
+		},
+		{
+			"name": "📚 Ejemplos",
+			"path": "../examples"
+		},
+		{
+			"name": "📄 Documentación",
+			"path": "../docs"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.ino": "cpp",
+			"*.h": "cpp"
+		},
+		"C_Cpp.intelliSenseEngine": "default",
+		"editor.formatOnSave": true,
+		"editor.tabSize": 4,
+		"editor.insertSpaces": true,
+		"files.exclude": {
+			"**/.pio": true,
+			"**/.vscode": true,
+			"**/__pycache__": true
+		},
+		"search.exclude": {
+			"**/.pio": true,
+			"**/node_modules": true
+		},
+		"C_Cpp.default.compilerPath": "${env:USERPROFILE}\\.platformio\\packages\\toolchain-xtensa-esp32\\bin\\xtensa-esp32-elf-gcc.exe",
+		"C_Cpp.default.intelliSenseMode": "gcc-x64",
+		"terminal.integrated.env.windows": {
+			"PATH": "${env:PATH};${env:USERPROFILE}\\.platformio\\penv\\Scripts"
+		},
+		"terminal.integrated.env.linux": {
+			"PATH": "${env:PATH}:${env:HOME}/.platformio/penv/bin"
+		},
+		"terminal.integrated.env.osx": {
+			"PATH": "${env:PATH}:${env:HOME}/.platformio/penv/bin"
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"platformio.platformio-ide",
+			"ms-vscode.cpptools",
+			"ms-vscode.cpptools-extension-pack",
+			"espressif.esp-idf-extension"
+		]
+	}
+}

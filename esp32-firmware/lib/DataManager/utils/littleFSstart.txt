@@ -1,0 +1,74 @@
+Lista de Instalacion
+Verificar Instalacion de Python
+
+Abrir una terminal o PowerShell y ejecutar:
+sh
+Copiar
+python --version
+Asegurarse de que Python este instalado (por ejemplo, debe mostrar "Python 3.13.2").
+Instalar PlatformIO Core
+
+En la terminal, ejecutar:
+sh
+Copiar
+pip install -U platformio
+Este comando instalara PlatformIO Core en el entorno de Python.
+Agregar PlatformIO al PATH del Sistema
+
+Localizar la carpeta donde se instalo PlatformIO, normalmente:
+makefile
+Copiar
+C:\Users\jorge\.platformio\penv\Scripts
+Agregar esta ruta a la variable de entorno PATH.
+Con PowerShell (ejecutar como administrador):
+sh
+Copiar
+$env:Path += ";C:\Users\jorge\.platformio\penv\Scripts"
+Para hacerlo de forma permanente, usar el panel de Variables de Entorno de Windows y agregar la ruta a PATH.
+Verificar la Instalacion de PlatformIO
+
+Cerrar y reabrir la terminal y ejecutar:
+sh
+Copiar
+pio --version
+Se debe mostrar la version instalada de PlatformIO.
+Preparar el Proyecto para LittleFS
+
+Crear una carpeta llamada data/ en la raiz del proyecto (al mismo nivel que src/).
+Dentro de data/, colocar el archivo index.html (u otros archivos como .css, .js, etc).
+Configurar platformio.ini para Usar LittleFS
+
+En el archivo platformio.ini, agregar la siguiente linea:
+ini
+Copiar
+board_build.filesystem = littlefs
+Esto indicara que se usara LittleFS en el proyecto.
+Subir los Archivos a LittleFS
+
+En la terminal, ubicarse en la carpeta raiz del proyecto y ejecutar:
+sh
+Copiar
+pio run --target uploadfs
+Este comando subira el contenido de la carpeta data/ al sistema de archivos del ESP32.
+
+
+
+**** Cada que deseas hacer una carga de archivos 
+1)  Agregar esta ruta a la variable de entorno PATH.
+    $env:Path += ";C:\Users\jorge\.platformio\penv\Scripts"
+2)  Este comando subira el contenido de la carpeta data/ al sistema de archivos del ESP32.
+    pio run --target uploadfs
+
+
+AV_NEXUS_0.1_25_02_22_B001/
+├── data/
+│   ├── web/             // Archivos para el navegador (HTML, JS, CSS)
+│   │   ├── index.html
+│   │   ├── style.css
+│   │   └── app.js
+│   ├── configs/         // Archivos de configuraciones del ESP
+│   │   └── config.json
+│   ├── controls/        // Archivos relacionados con controles y ajustes especificos
+│   │   └── controls.json
+│   └── certs/           // Certificados
+│       └── certificado.pem

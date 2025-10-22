@@ -1,0 +1,44 @@
+{
+    "name": "NeoPixelAV",
+    "version": "1.0.0",
+    "description": "Librería para controlar NeoPixels con patrones de parpadeo específicos para el sistema AV NEXUS. Incluye patrones rápidos, colores predefinidos y control preciso de timing.",
+    "keywords": [
+        "ESP32",
+        "NeoPixel",
+        "LED",
+        "patterns",
+        "timing",
+        "Adafruit",
+        "RGB",
+        "lighting"
+    ],
+    "authors": [
+        {
+            "name": "jorge aguilar",
+            "email": "jorge@nexustech.com"
+        }
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/nexustech/av-nexus"
+    },
+    "license": "MIT",
+    "frameworks": [
+        "arduino",
+        "espidf"
+    ],
+    "platforms": [
+        "espressif32"
+    ],
+    "dependencies": [
+        {
+            "name": "Adafruit NeoPixel",
+            "version": "^1.10.0"
+        }
+    ],
+    "export": {
+        "include": [
+            "src/*"
+        ]
+    }
+}

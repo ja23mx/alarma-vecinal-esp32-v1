@@ -1,0 +1,33 @@
+{
+    "name": "BLEManager",
+    "version": "1.0.0",
+    "description": "Libreria para gestionar BLE en ESP32 usando NimBLE-Arduino.",
+    "keywords": [
+        "ESP32",
+        "BLE",
+        "Bluetooth",
+        "NimBLE"
+    ],
+    "authors": [
+        {
+            "name": "Tu Nombre",
+            "email": "tu.email@example.com"
+        }
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/tuusuario/BLEManager.git"
+    },
+    "frameworks": "arduino",
+    "platforms": "espressif32",
+    "dependencies": {
+        "h2zero/NimBLE-Arduino": "^2.2.3"
+    },
+    "export": {
+        "include": [
+            "*.h",
+            "*.cpp"
+        ]
+    }
+}

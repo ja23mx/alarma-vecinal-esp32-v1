@@ -1,0 +1,11 @@
+Para trabajar con este proyecto en Visual Studio Code, abre el archivo `.code-workspace` ubicado en la carpeta esp32-firmware/ correspondiente del proyecto.
+
+Los archivos:
+
+- CHANGELOG.md         - Historial de cambios del proyecto
+- LICENSE              - Licencia del proyecto
+- README.md            - Documentación general del proyecto
+
+abrir directamente desde el explorador de windows para editar, no están indexados en .code-workspace, por ese motivo no aparece en el navegador de archivos de vs code.
+
+Este archivo configura el entorno de trabajo y las carpetas necesarias para el desarrollo.

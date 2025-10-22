@@ -1,0 +1,199 @@
+#include "NeoPixelAV.h"
+
+// ============================================================================
+// MÉTODOS DE PATRONES DE SERVIDOR
+// ============================================================================
+
+void NeoPixelController::ejecutarPatronServidorConectado(void)
+{
+    // Patrón: 2s OFF, 0.5s ON azul, ciclo infinito de 2.5s
+    // Timing: |0----2s----2.5s|
+    // LED:    |_____■■■■■_____|
+
+    static bool reset = true;
+    static unsigned long ultimoCambio = 0;
+    static bool estadoEnviado = false;
+    static bool estadoLED = false; // true = ON, false = OFF - EMPEZAR CON OFF
+
+    // Verificar stop absoluto al inicio
+    if (stopAbsoluto)
+    {
+        reset = true;
+        busy = false;
+        return;
+    }
+
+    // Verificar si hay que resetear timer después de interrupción
+    if (resetearTimerServidor)
+    {
+        reset = true; // Forzar reset para empezar desde estado inicial
+        resetearTimerServidor = false; // Limpiar bandera
+    }
+
+    // Activar bandera busy solo durante patrones de interrupción
+    // Los patrones de fondo no activan busy
+    busy = false;
+
+    // Primera vez o reinicio
+    if (reset)
+    {
+        reset = false;
+        ultimoCambio = millis();
+        estadoEnviado = false;
+        estadoLED = false; // Empezar con OFF (2s)
+        // [PASO 1 - LIMPIEZA] Variables anteriores comentadas
+        // inicioPeriodoOFF = millis(); // Registrar inicio del período OFF
+        // blinkMP3EjecutadoEnEsteCiclo = false; // Reset flag del MP3
+        // Serial.print("[SERVER CONECTADO] Reset - inicioPeriodoOFF=");
+        // Serial.println(inicioPeriodoOFF);
+    }
+    }
+
+    // Verificar timing: 2s OFF, 0.5s ON
+    unsigned long tiempoTranscurrido = millis() - ultimoCambio;
+    bool cambioEstado = false;
+
+    if (!estadoLED && tiempoTranscurrido >= 2000) // OFF por 2000ms
+    {
+        estadoLED = true;
+        cambioEstado = true;
+    }
+    else if (estadoLED && tiempoTranscurrido >= 500) // ON por 500ms
+    {
+        estadoLED = false;
+        cambioEstado = true;
+    }
+
+    // Cambiar estado y resetear timer
+    if (cambioEstado)
+    {
+        ultimoCambio = millis();
+        estadoEnviado = false;
+        
+        // [PASO 1 - LIMPIEZA] Reset del período OFF comentado
+        /*
+        if (!estadoLED) {
+            inicioPeriodoOFF = millis();
+            blinkMP3EjecutadoEnEsteCiclo = false; // Reset flag del MP3 para nuevo ciclo
+            // NO resetear timerMP3 aquí - mantener el ciclo independiente de 5 segundos
+        }
+        */
+    }
+
+    // Enviar estado solo una vez por cambio
+    if (!estadoEnviado)
+    {
+        if (estadoLED)
+        {
+            setAllLEDs(COLOR_AZUL); // LEDs 1-16 azules
+        }
+        else
+        {
+            // [PASO 1 - LIMPIEZA] Lógica anterior de error MP3 comentada
+            /*
+            if (puedeEjecutarErrorMP3())
+            {
+                blinkMP3(); // Ejecutar patrón de error MP3
+            }
+            else
+            */
+            {
+                setAllLEDs(0); // LEDs 1-16 apagados
+            }
+        }
+        estadoEnviado = true;
+    }
+}
+
+void NeoPixelController::ejecutarPatronServidorDesconectado(void)
+{
+    // Patrón: 2s OFF, 0.5s ON violeta, ciclo infinito de 2.5s
+    // Timing: |0----2s----2.5s|
+    // LED:    |_____■■■■■_____|
+
+    static bool reset = true;
+    static unsigned long ultimoCambio = 0;
+    static bool estadoEnviado = false;
+    static bool estadoLED = false; // true = ON, false = OFF - EMPEZAR CON OFF
+
+    // Verificar stop absoluto al inicio
+    if (stopAbsoluto)
+    {
+        reset = true;
+        busy = false;
+        return;
+    }
+
+    // Verificar si hay que resetear timer después de interrupción
+    if (resetearTimerServidor)
+    {
+        reset = true; // Forzar reset para empezar desde estado inicial
+        resetearTimerServidor = false; // Limpiar bandera
+    }
+
+    // Activar bandera busy solo durante patrones de interrupción
+    // Los patrones de fondo no activan busy
+    busy = false;
+
+    // Primera vez o reinicio
+    if (reset)
+    {
+        reset = false;
+        ultimoCambio = millis();
+        estadoEnviado = false;
+        estadoLED = false; // Empezar con OFF (2s)
+        inicioPeriodoOFF = millis(); // Registrar inicio del período OFF
+        blinkMP3EjecutadoEnEsteCiclo = false; // Reset flag del MP3
+    }
+
+    // Verificar timing: 2s OFF, 0.5s ON
+    unsigned long tiempoTranscurrido = millis() - ultimoCambio;
+    bool cambioEstado = false;
+
+    if (!estadoLED && tiempoTranscurrido >= 2000) // OFF por 2000ms
+    {
+        estadoLED = true;
+        cambioEstado = true;
+    }
+    else if (estadoLED && tiempoTranscurrido >= 500) // ON por 500ms
+    {
+        estadoLED = false;
+        cambioEstado = true;
+    }
+
+    // Cambiar estado y resetear timer
+    if (cambioEstado)
+    {
+        ultimoCambio = millis();
+        estadoEnviado = false;
+        
+        // Si cambió a OFF, registrar inicio del nuevo período OFF
+        if (!estadoLED) {
+            inicioPeriodoOFF = millis();
+            blinkMP3EjecutadoEnEsteCiclo = false; // Reset flag del MP3 para nuevo ciclo
+            // NO resetear timerMP3 aquí - mantener el ciclo independiente de 5 segundos
+        }
+    }
+
+    // Enviar estado solo una vez por cambio
+    if (!estadoEnviado)
+    {
+        if (estadoLED)
+            setAllLEDs(COLOR_VIOLETA); // LEDs 1-16 violetas
+        else
+        {
+            // [PASO 1 - LIMPIEZA] Lógica anterior de error MP3 comentada
+            /*
+            if (puedeEjecutarErrorMP3())
+            {
+                blinkMP3(); // Ejecutar patrón de error MP3
+            }
+            else
+            */
+            {
+                setAllLEDs(0); // LEDs 1-16 apagados
+            }
+        }
+        estadoEnviado = true;
+    }
+}

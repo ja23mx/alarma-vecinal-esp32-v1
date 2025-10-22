@@ -1,0 +1,45 @@
+# NeoPixelAV Library Keywords
+
+# Class (KEYWORD1)
+NeoPixelController	KEYWORD1
+
+# Methods (KEYWORD2)
+init	KEYWORD2
+apagar	KEYWORD2
+setColor	KEYWORD2
+setAllLEDs	KEYWORD2
+setPatron	KEYWORD2
+loop	KEYWORD2
+isConfigured	KEYWORD2
+getCurrentPattern	KEYWORD2
+
+# Static Methods (KEYWORD2)
+colorAzul	KEYWORD2
+colorVerde	KEYWORD2
+colorAmarillo	KEYWORD2
+colorTurquesa	KEYWORD2
+colorNaranja	KEYWORD2
+colorRojo	KEYWORD2
+colorVioleta	KEYWORD2
+colorAzulClaro	KEYWORD2
+
+# Constants (LITERAL1)
+NEOPIXEL_PIN	LITERAL1
+NUMPIXELS	LITERAL1
+PATRON_APAGADO	LITERAL1
+PATRON_FIJO	LITERAL1
+PATRON_RAPIDO_1	LITERAL1
+PATRON_RAPIDO_2	LITERAL1
+ESTADO_INACTIVO	LITERAL1
+ESTADO_ENCENDIDO	LITERAL1
+ESTADO_APAGADO	LITERAL1
+ESTADO_FINALIZADO	LITERAL1
+
+# Functions (KEYWORD2)
+neopixel_set_patron_rapido_1	KEYWORD2
+neopixel_set_patron_rapido_2	KEYWORD2
+neopixel_set_color_fijo	KEYWORD2
+neopixel_apagar_todos	KEYWORD2
+crearTareaNeoPixel	KEYWORD2
+cambiar_estado_neopixel	KEYWORD2
+tareaNeoPixel	KEYWORD2

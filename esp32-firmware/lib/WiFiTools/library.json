@@ -1,0 +1,44 @@
+{
+    "name": "WiFiTool",
+    "version": "1.0.0",
+    "description": "Librería para escaneo y conexión WiFi en ESP32.",
+    "keywords": [
+        "WiFi",
+        "ESP32",
+        "Network",
+        "Arduino",
+        "PlatformIO"
+    ],
+    "authors": [
+        {
+            "name": "jorge aguilar",
+            "email": "jorge.aguilar.1100@gmail.com",
+            "url": "https://github.com/TuUsuario/WiFiTool",
+            "maintainer": true
+        }
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/TuUsuario/WiFiTool.git"
+    },
+    "frameworks": [
+        "arduino"
+    ],
+    "platforms": [
+        "espressif32"
+    ],
+    "dependencies": {
+        "bblanchon/ArduinoJson": "^6.19.4"
+    },
+    "export": {
+        "exclude": [
+            ".git",
+            ".github",
+            "docs",
+            "tests",
+            "*.md",
+            "*.yml"
+        ]
+    }
+}

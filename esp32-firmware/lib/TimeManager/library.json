@@ -1,0 +1,49 @@
+{
+  "name": "TimeManager",
+  "version": "1.0.0",
+  "description": "Singleton wrapper for ezTime library with robust NTP synchronization and error handling for ESP32 projects",
+  "keywords": [
+    "time",
+    "ntp",
+    "timezone",
+    "singleton",
+    "esp32",
+    "eztime"
+  ],
+  "authors": [
+    {
+      "name": "NEXUS TECH",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/nexustech/timemanager",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nexustech/timemanager.git"
+  },
+  "version": "1.0.0",
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "dependencies": [
+    {
+      "name": "ezTime",
+      "version": "^0.8.3",
+      "platforms": ["espressif32"]
+    }
+  ],
+  "export": {
+    "include": "src"
+  },
+  "build": {
+    "includeDir": "src",
+    "srcDir": "src"
+  },
+  "examples": [
+    {
+      "name": "Basic Usage",
+      "base": "examples/basic_usage",
+      "files": ["basic_usage.ino"]
+    }
+  ]
+}

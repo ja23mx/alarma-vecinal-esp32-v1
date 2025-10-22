@@ -1,0 +1,7 @@
+# Name	    Type	SubType	    Offset	    Size	    Size (KB)   Percentage
+nvs	        data	nvs	        0x9000	    0x5000	    20 KB       0.24%
+otadata	    data	ota	        0xe000	    0x2000	    8 KB        0.098%
+app0	    app	    ota_0	    0x10000	    0x330000	3312 KB     40.44%
+app1	    app	    ota_1	    0x340000	0x330000	3312 KB     40.44%
+spiffs	    data    spiffs	    0x670000	0x180000	1536 KB     18.75%
+coredump	data    coredump	0x7F0000	0x10000	    64 KB       0.78%

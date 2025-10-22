@@ -1,0 +1,36 @@
+{
+    "name": "DataManager",
+    "version": "1.0.0",
+    "description": "Librería para gestionar configuraciones en ESP32 usando LittleFS y JSON, con soporte para comandos vía Serial, Web y MQTT.",
+    "keywords": [
+        "ESP32",
+        "LittleFS",
+        "JSON",
+        "configuration",
+        "data",
+        "commands"
+    ],
+    "authors": [
+        {
+            "name": "jorge aguilar",
+            "email": "jorge.aguilar.1100@gmail.com"
+        }
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/tuusuario/DataManager.git"
+    },
+    "frameworks": "arduino",
+    "platforms": "espressif32",
+    "dependencies": {
+        "bblanchon/ArduinoJson": "^6.18.5",
+        "suculent/AESLib": "^2.3.6"
+    },
+    "export": {
+        "include": [
+            "*.h",
+            "*.cpp"
+        ]
+    }
+}
