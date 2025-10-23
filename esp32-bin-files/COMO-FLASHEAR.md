@@ -1,37 +1,69 @@
-# Guía de Flasheo - ESP32 Git Template 1
+# Guía de Flasheo - Sistema Alarma Vecinal ESP32
 
-Esta guía explica cómo flashear el firmware compilado al ESP32 usando **esptool**.
+Esta guía explica cómo flashear el firmware compilado al ESP32 del sistema de **Alarma Vecinal** usando **ESP32 Flash Download Tool**.
 
 ---
 
 ## 📋 Requisitos Previos
 
 ### Hardware
-- ESP32 Dev Module (especificar modelo exacto)
-- Cable USB (datos, no solo carga)
-- PC con Windows/Linux/macOS
+- **ESP32 Dev Module con 8MB Flash** (configurado en el proyecto)
+- Cable USB de datos (no solo carga)
+- PC con Windows
 
 ### Software
-- **esptool.py** - [Descargar aquí](https://github.com/espressif/esptool/releases)
+- **ESP32 Flash Download Tool** - Herramienta gráfica oficial de Espressif
 
 ---
 
-## 🔧 Instalación de esptool
+## 🔧 Herramienta de Programación: ESP32 Flash Download Tool
 
-### Windows
-```cmd
-pip install esptool
-```
+### Descarga e Instalación
 
-### Linux/macOS
-```bash
-pip3 install esptool
-```
+1. **Descargar Flash Download Tool:**
+   - Ve a: [Espressif Flash Download Tools](https://www.espressif.com/en/support/download/other-tools)
+   - Buscar **"Flash Download Tools"**
+   - Descargar: `flash_download_tool_vX.X.X.zip`
 
-### Verificar instalación
-```bash
-esptool.py version
-```
+2. **Extraer archivos:**
+   ```
+   Crear carpeta: C:\ESP32-FlashTool\
+   Extraer el contenido del ZIP ahí
+   ```
+
+3. **Estructura esperada:**
+   ```
+   C:\ESP32-FlashTool\
+   ├── flash_download_tool_3.9.9_R2.exe (o versión más reciente)
+   ├── configure/
+   └── (otros archivos)
+   ```
+
+### Verificación de la Instalación
+
+1. **Ejecutar la herramienta:**
+   - Navegar a `C:\ESP32-FlashTool\`
+   - Doble clic en `flash_download_tool_3.9.9_R2.exe`
+
+2. **Pantalla inicial:**
+   ```
+   Debería aparecer una ventana preguntando el tipo de chip
+   Seleccionar: ESP32
+   Seleccionar: develop
+   Hacer clic en "OK"
+   ```
+
+3. **Ventana principal:**
+   - Se abre la interfaz gráfica principal
+   - Listo para usar
+
+### ⚠️ Problemas Comunes en esta Etapa
+
+| Error                       | Causa                             | Solución                                                 |
+| --------------------------- | --------------------------------- | -------------------------------------------------------- |
+| `No se abre la aplicación`  | Archivo corrupto o antivirus      | Descargar nuevamente, desactivar antivirus temporalmente |
+| `Error de Windows Defender` | Falso positivo de seguridad       | Agregar excepción en Windows Defender                    |
+| `Falta archivo .dll`        | Dependencias de Windows faltantes | Instalar Visual C++ Redistributable                      |
 
 ---
 
@@ -63,113 +95,103 @@ pio run
 # Anotar el puerto, ej: COM3
 ```
 
-### Linux
-```bash
-ls /dev/ttyUSB*
-# Resultado típico: /dev/ttyUSB0
-```
-
-### macOS
-```bash
-ls /dev/cu.*
-# Resultado típico: /dev/cu.usbserial-0001
-```
-
 ---
 
 ## 🚀 Flashear el Firmware
 
-### Método 1: Flasheo Básico (Recomendado)
+### Preparar el ESP32 para Programar
 
-#### Windows
-```cmd
-esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x10000 esp32-TEMPLATE-V0.0.1-B-001-T-11-10-2025-015448HRS.bin
-```
+Antes de usar el Flash Download Tool, debes poner el ESP32 en **modo de programación (bootloader)**:
 
-#### Linux/macOS
-```bash
-esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 write_flash 0x10000 esp32-TEMPLATE-V0.0.1-B-001-T-11-10-2025-015448HRS.bin
-```
+#### Método Manual (Para ESP32 sin auto-reset)
 
-### Método 2: Flasheo Completo (Borra toda la memoria)
+1. **Localizar los botones:**
+   - **BOOT/PROG** (conectado a GPIO0)
+   - **EN/RST** (botón de reset)
 
-#### Windows
-```cmd
-esptool.py --chip esp32 --port COM3 --baud 921600 erase_flash
-esptool.py --chip esp32 --port COM3 --baud 921600 write_flash 0x10000 esp32-TEMPLATE-V0.0.1-B-001-T-11-10-2025-015448HRS.bin
-```
+2. **Secuencia de botones:**
+   - **Paso 1:** Mantener presionado el botón **BOOT/PROG**
+   - **Paso 2:** Mientras mantienes BOOT, presionar y soltar **EN/RST**
+   - **Paso 3:** Soltar el botón **BOOT/PROG**
+   - **Resultado:** ESP32 entra en modo bootloader
 
-#### Linux/macOS
-```bash
-esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 erase_flash
-esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 write_flash 0x10000 esp32-TEMPLATE-V0.0.1-B-001-T-11-10-2025-015448HRS.bin
-```
+3. **Verificar modo bootloader:**
+   - Conectar ESP32 al PC
+   - Abrir monitor serie (115200 baud)
+   - Debería aparecer: `waiting for download` o similar
 
----
+#### Método Automático (Para ESP32 con auto-reset)
 
-## 📊 Parámetros Explicados
+Algunos ESP32 Dev Board tienen **auto-reset automático**:
+- Solo conectar al PC
+- El Flash Download Tool maneja automáticamente la entrada al bootloader
+- **Si falla:** usar el método manual arriba
 
-| Parámetro       | Descripción                                                  |
-| --------------- | ------------------------------------------------------------ |
-| `--chip esp32`  | Especifica el tipo de chip (ESP32, ESP32-S2, ESP32-C3, etc.) |
-| `--port COM3`   | Puerto serial donde está conectado el ESP32                  |
-| `--baud 921600` | Velocidad de transmisión (921600 es la más rápida)           |
-| `write_flash`   | Comando para escribir firmware                               |
-| `0x10000`       | Dirección de memoria donde se escribe el firmware            |
-| `archivo.bin`   | Ruta al archivo binario del firmware                         |
+#### ⚠️ Problemas Comunes
 
-### Velocidades de Baudrate Alternativas
-
-Si `921600` da errores, prueba velocidades más bajas:
-- `460800`
-- `230400`
-- `115200` (más lenta pero más estable)
-
-Ejemplo:
-```bash
-esptool.py --chip esp32 --port COM3 --baud 115200 write_flash 0x10000 firmware.bin
-```
+| Problema                              | Causa                       | Solución                                |
+| ------------------------------------- | --------------------------- | --------------------------------------- |
+| `No response from device`             | ESP32 no en modo bootloader | Repetir secuencia de botones            |
+| `Timed out waiting for packet header` | Cable USB defectuoso        | Usar cable de datos (no solo carga)     |
+| `Serial port busy`                    | Puerto COM ocupado          | Cerrar otros programas usando el puerto |
 
 ---
 
-## ✅ Verificación del Flasheo
+### Configurar el Flash Download Tool
 
-### Salida Exitosa
-Deberías ver algo como:
-```plaintext
-esptool.py v4.7.0
-Serial port COM3
-Connecting....
-Chip is ESP32-D0WD-V3 (revision v3.0)
-Features: WiFi, BT, Dual Core, 240MHz, VRef calibration in efuse, Coding Scheme None
-Crystal is 40MHz
-MAC: xx:xx:xx:xx:xx:xx
-Uploading stub...
-Running stub...
-Stub running...
-Configuring flash size...
-Flash will be erased from 0x00010000 to 0x000xxxxx...
-Compressed 123456 bytes to 78901...
-Wrote 123456 bytes (78901 compressed) at 0x00010000 in 2.5 seconds
-Hash of data verified.
+1. **Abrir la herramienta:**
+   - Ejecutar `flash_download_tool_3.9.9_R2.exe`
+   - Seleccionar: **ESP32**
+   - Seleccionar: **develop**
+   - Hacer clic en **"OK"**
 
-Leaving...
-Hard resetting via RTS pin...
-```
+2. **Configurar el archivo .bin:**
+   - Marcar la primera casilla (checkbox) ☑️
+   - Hacer clic en **"..."** para buscar el archivo
+   - Seleccionar tu archivo `.bin` (ej: `esp32-ALARMA-VECINAL-v1.0.bin`)
+   - En la dirección, escribir: **`0x10000`**
 
-### Monitor Serial (Opcional)
+3. **Configurar SPI SPEED:**
+   - Seleccionar: **40MHz** (recomendado)
 
-Para ver la salida del ESP32:
+4. **Configurar SPI MODE:**
+   - Seleccionar: **DIO** (recomendado)
 
-#### Con esptool:
-```bash
-esptool.py --port COM3 monitor
-```
+5. **Configurar puerto COM:**
+   - En **COM:** seleccionar tu puerto (ej: **COM4**)
+   - En **BAUD:** seleccionar **115200** (estable) o **921600** (rápido)
 
-#### Con PlatformIO:
-```bash
-pio device monitor --port COM3 --baud 115200
-```
+6. **Iniciar flasheo:**
+   - **IMPORTANTE:** ESP32 debe estar en modo bootloader
+   - Hacer clic en **"START"**
+   - El botón se pondrá verde y dirá **"等待"** (esperando)
+
+### Durante el Flasheo
+
+**Progreso esperado:**
+1. Estado: **"IDLE"** (inicial)
+2. Estado: **"等待"** (esperando) - botón verde
+3. Estado: **"Download"** (descargando) - color azul
+4. Estado: **"FINISH"** (terminado) - color azul
+5. Mensaje en la ventana inferior: **"完成"** (completado)
+
+**Tiempo estimado:** 30-60 segundos dependiendo del tamaño del firmware
+
+### Flasheo Exitoso ✅
+
+**Indicadores de éxito:**
+- Estado final: **"FINISH"**
+- Mensaje: **"完成"** (completado en chino)
+- Información del chip mostrada en el panel derecho:
+  - **flash vendor:** (fabricante del flash)
+  - **flash devID:** (ID del dispositivo)
+  - **crystal:** 40 Mhz
+
+**Información adicional mostrada:**
+- **AP:** Dirección MAC del Access Point
+- **STA:** Dirección MAC de la estación
+- **BT:** Dirección MAC del Bluetooth
+- **ETHERNET:** Dirección MAC Ethernet
 
 ---
 
