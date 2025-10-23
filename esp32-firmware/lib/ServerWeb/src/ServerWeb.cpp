@@ -18,6 +18,7 @@ size_t content_len;
 #include "Constantes.h"
 #include "../html_files/html_css_ota.h"
 #include "../html_files/index-html.h"
+#include "../html_files/html_css_cmd.h"
 
 #include <DNSServer.h>
 
@@ -72,7 +73,7 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
   { // Modo normal: conectar a la red WiFi como estacion (STA).
     LOG("\r\n\r\nPROG_LOCAL\r\nWIFI CONECTANDO...");
     WiFi.mode(WIFI_STA);
-    WiFi.begin("REDCONEKTA", "12345678CONEKTA"); // Conectar a la red
+    WiFi.begin("REDALERTA", "@TLWN_7200NDMX2148"); // Conectar a la red
     // "REDLOCAL", "TLWN7200NDMX2148"
     delay(2000);
     // Esperar hasta conectar
@@ -194,15 +195,12 @@ void ServerWeb::initServer()
 
   // Páginas adicionales
   server->on("/cmd", HTTP_GET, [](AsyncWebServerRequest *request)
-             { request->send(LittleFS, "/web/cmd.html", "text/html"); });
+             { request->send_P(200, "text/html", const_html_ccs_cmd); });
 
   server->on("/", HTTP_GET, [](AsyncWebServerRequest *request)
              {
                Serial.print("\r\n\r\nPAG INICIO");
-               request->send_P(200, "text/html", const_html_ccs_index);
-
-               // request->send(LittleFS, "/web/index.html", "text/html");
-             });
+               request->send_P(200, "text/html", const_html_ccs_index); });
 
   /* server->serveStatic("/css/", LittleFS, "/web/css/");
   server->serveStatic("/js/", LittleFS, "/web/js/");
