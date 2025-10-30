@@ -49,13 +49,12 @@ void tareaProcesos(void *pvParameters)
     LOG("\r\n\r\nTarea de procesos iniciada...");
 
 #ifdef VOZ_ENABLED
-    delay(3000); // Espera que DFPlayer esté listo
-    mp3_init();  // Inicializa el módulo MP3
+    delay(3000);                                     // Espera que DFPlayer esté listo
+    mp3_init();                                      // Inicializa el módulo MP3
+    proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
 #endif
 
     rf_esp_init(); // Inicializa el receptor RF
-
-    proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
 
     while (true)
     {

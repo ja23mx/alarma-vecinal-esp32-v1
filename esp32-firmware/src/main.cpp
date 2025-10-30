@@ -40,8 +40,7 @@ void setup()
   Serial.begin(115200);
   LOG("\r\n\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE) + " ");
   LOG(String(SISTEMA_VERSION) + " " + String(SISTEMA_BUILD) + " . TRJ VRS: " + String(TARJETA_VERSION) + "\r\n\r\n");
-  LOG("Compilacion: " + String(SISTEMA_DATE) + "\r\n\r\n");
-  LOG("Modelo: " + String(BOARD_MODELO) + "\r\n\r\n");
+  LOG("\r\nCompilacion: " + String(SISTEMA_DATE) + "\r\n\r\n");
 
   delay(100); // Esperar 1 segundo para estabilizar el puerto serie
   // Configurar el tiempo de espera del Watchdog a 10 segundos
@@ -59,14 +58,11 @@ void setup()
   digitalWrite(SALIDA_2, LOW);
 #endif
 
-  pinMode(PIN_ENT_DIG_1, INPUT_PULLUP);
   pinMode(LED_MP3, OUTPUT);
-  pinMode(PIN_RELE, OUTPUT);
 
   digitalWrite(LED_STATUS, LED_ST_OFF);
-  digitalWrite(AMPLIFICADOR, AMP_OFF);
+  digitalWrite(AMPLIFICADOR, LOW);
   digitalWrite(SALIDA_1, LOW);
-  digitalWrite(PIN_RELE, LOW);
   digitalWrite(LED_MP3, LOW);
 
   mp3State.Configurado = false; // Inicializar el estado del MP3 como no configurado
@@ -79,7 +75,7 @@ void setup()
 
   crearTareaNeoPixel();      // Crear la tarea de NeoPixel
   crearTareaProcesos();      // Crear la tarea de procesos
-  crearTareaProcesosCmd();   //
+  crearTareaProcesosCmd();   // Crear la tarea de procesos de comandos
   crearTareaGestionSalida(); // Crear la tarea de gestión de salidas
 
   if (PROG_LOCAL)

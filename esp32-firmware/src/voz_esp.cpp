@@ -10,6 +10,8 @@
 #include "GestorCmd.h"
 #include "tarea_neopixel.h"
 
+#define AMP_ON 1  // Estado del amplificador encendido
+#define AMP_OFF 0 // Estado del amplificador apagado
 
 // Define para habilitar/deshabilitar la gestión de errores MP3
 #define ENABLE_MP3_ERROR_MANAGEMENT 1
@@ -18,7 +20,7 @@ DFRobotDFPlayerMini dfPlayer; // Instancia del DFPlayer
 HardwareSerial SerialMP3(1);  // define a Serial for UART1
 
 // Instancia del MP3Controller (nueva clase)
-//MP3Controller mp3Controller(dfPlayer, SerialMP3, PIN_MP3_UART_RX, PIN_MP3_UART_TX, PIN_MP3_BUSY, AMPLIFICADOR);
+// MP3Controller mp3Controller(dfPlayer, SerialMP3, PIN_MP3_UART_RX, PIN_MP3_UART_TX, PIN_MP3_BUSY, AMPLIFICADOR);
 
 DATOS_INSTRUCCION cmdDataVoz;    // Estructura para almacenar el comando de salida
 std::vector<long> numerosArrVoz; // Vector para almacenar los números separados
@@ -151,11 +153,11 @@ void mp3_init(void)
     // LOG("\r\n\r\nmp3_init");
     SerialMP3.begin(9600, SERIAL_8N1, PIN_MP3_UART_RX, PIN_MP3_UART_TX);
     delay(50);
-    
+
     // Inicializar nuevas variables
     mp3State.pistaActual = 0;
     mp3State.amplificadorActivo = false;
-    
+
     mp3_init_comandos();
 
     mp3_pista_prueba_init(CONST_MP3_SYST_ERROR_AUDIO_404, false);
@@ -320,7 +322,8 @@ void mp3_pista_prueba_init(uint16_t pista, bool habilitar_amplificador) // compr
     mp3State.pistaActual = 0;
 
     // Manejo del amplificador basado en loop_1_pista_cmd
-    if (habilitar_amplificador) {
+    if (habilitar_amplificador)
+    {
         mp3_amplificador_on(); // encender amplificador
     }
 
@@ -334,9 +337,10 @@ void mp3_pista_prueba_init(uint16_t pista, bool habilitar_amplificador) // compr
         async_error_mp3_desactivar(); // Pista de prueba exitosa, desactivar error
 #endif
         async_led_mp3_on(); // Pista de prueba exitosa - LED ON
-        
+
         // Apagar amplificador si fue encendido
-        if (habilitar_amplificador) {
+        if (habilitar_amplificador)
+        {
             mp3_amplificador_off();
         }
         return;
@@ -348,12 +352,13 @@ void mp3_pista_prueba_init(uint16_t pista, bool habilitar_amplificador) // compr
         async_led_mp3_off();       // Error en pista de prueba - LED OFF
     }
 #endif
-    
+
     // Apagar amplificador si fue encendido (caso de error)
-    if (habilitar_amplificador) {
+    if (habilitar_amplificador)
+    {
         mp3_amplificador_off();
     }
-    
+
     delay(1000);
 
     return;
@@ -364,9 +369,9 @@ bool mp3_reproducion_audio(uint16_t pista, bool stop_en)
     bool rsp = false;
     uint16_t pista_aux = pista;
 
-    mp3State.pistaReprodOk = false;        // Reset estado de reproducción
-    mp3State.initReproduccion = false;     // Indica que se ha iniciado la reproducción
-    mp3State.pistaActual = pista_aux;      // Guardar pista actual
+    mp3State.pistaReprodOk = false;    // Reset estado de reproducción
+    mp3State.initReproduccion = false; // Indica que se ha iniciado la reproducción
+    mp3State.pistaActual = pista_aux;  // Guardar pista actual
 
     if (mp3State.conexion)
     {
@@ -375,7 +380,8 @@ bool mp3_reproducion_audio(uint16_t pista, bool stop_en)
         mp3State.pistaReprodOk = rsp;                       // Actualizar estado de reproducción
         mp3_stop_cmd();                                     // detiene la reproduccion de la pista
         mp3State.initReproduccion = false;                  // puesta a cero de bandera de reproduccion
-        if (!rsp) mp3State.pistaActual = 0;                // Reset si falló
+        if (!rsp)
+            mp3State.pistaActual = 0; // Reset si falló
         return rsp;
     }
     else
@@ -385,7 +391,8 @@ bool mp3_reproducion_audio(uint16_t pista, bool stop_en)
         mp3State.pistaReprodOk = rsp;                            // Actualizar estado de reproducción
         mp3_stop_cmd();                                          // detiene la reproduccion de la pista
         mp3State.initReproduccion = false;                       // puesta a cero de bandera de reproduccion
-        if (!rsp) mp3State.pistaActual = 0;                     // Reset si falló
+        if (!rsp)
+            mp3State.pistaActual = 0; // Reset si falló
         return rsp;
     }
 }
@@ -419,7 +426,7 @@ bool mp3_pista_play_comunic_1(uint16_t pista, bool stop_en)
         if (error_mp3_no_encontrado == true && pista_reproducida == 1)
         {
             LOG("\r\n\r\nerror_mp3_no_encontrado == true. \r\npista no encontrada");
-            mp3State.microSD = true;  // MicroSD presente pero archivo no encontrado
+            mp3State.microSD = true;             // MicroSD presente pero archivo no encontrado
             async_led_mp3_stop_reproduciendo(0); // Archivo no encontrado - LED OFF
             return false;
         }
@@ -447,7 +454,7 @@ bool mp3_pista_play_comunic_1(uint16_t pista, bool stop_en)
                 if (error_mp3_no_encontrado == false && digitalRead(PIN_MP3_BUSY) == !CONST_MP3_REPRODUCIENDO)
                 {
                     // LOG("\r\n\r\nfin reproduccion por BUSY");
-                    mp3State.microSD = true;  // MicroSD funcionando correctamente
+                    mp3State.microSD = true; // MicroSD funcionando correctamente
 #if ENABLE_MP3_ERROR_MANAGEMENT
                     async_error_mp3_desactivar(); // Reproducción exitosa, desactivar error
 #endif
@@ -557,7 +564,7 @@ void async_ejec_mp3_play_una_pista(void)
     mp3_amplificador_on(); // encender amplificador
 
     bool resultado = mp3_reproducion_audio(async_pista_1_ciclo_pista, 1); //
-    mp3_amplificador_off(); // apagar amplificador
+    mp3_amplificador_off();                                               // apagar amplificador
 
 #if ENABLE_MP3_ERROR_MANAGEMENT
     if (resultado)
