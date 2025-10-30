@@ -26,17 +26,17 @@ bool pendiente_error_mp3_activar = false;    // Bandera para activar error MP3
 bool pendiente_error_mp3_desactivar = false; // Bandera para desactivar error MP3
 
 // ================ BANDERAS PARA CONTROL ASÍNCRONO DEL LED MP3 ================
-bool pendiente_led_mp3_on = false;                    // Bandera para encender LED MP3 (reproductor reconocido)
-bool pendiente_led_mp3_off = false;                   // Bandera para apagar LED MP3 (reproductor no reconocido)
-bool pendiente_led_mp3_reproduciendo = false;         // Bandera para iniciar parpadeo de reproducción
-bool pendiente_led_mp3_stop_reproduciendo = false;    // Bandera para detener parpadeo y quedar fijo ON
-int8_t pendiente_led_mp3_stop_estado = 1;             // Estado final después del stop (-1:anterior, 0:OFF, 1:ON)
+bool pendiente_led_mp3_on = false;                 // Bandera para encender LED MP3 (reproductor reconocido)
+bool pendiente_led_mp3_off = false;                // Bandera para apagar LED MP3 (reproductor no reconocido)
+bool pendiente_led_mp3_reproduciendo = false;      // Bandera para iniciar parpadeo de reproducción
+bool pendiente_led_mp3_stop_reproduciendo = false; // Bandera para detener parpadeo y quedar fijo ON
+int8_t pendiente_led_mp3_stop_estado = 1;          // Estado final después del stop (-1:anterior, 0:OFF, 1:ON)
 
 // Variables de estado interno del LED MP3
-bool led_mp3_estado_reproduciendo = false;            // Flag si está en modo reproduciendo
-unsigned long led_mp3_timer = 0;                      // Timer para control de parpadeo
-bool led_mp3_estado_parpadeo = false;                 // Estado actual del parpadeo (true=ON, false=OFF)
-bool led_mp3_estado_anterior = false;                 // Estado anterior antes de reproducir
+bool led_mp3_estado_reproduciendo = false; // Flag si está en modo reproduciendo
+unsigned long led_mp3_timer = 0;           // Timer para control de parpadeo
+bool led_mp3_estado_parpadeo = false;      // Estado actual del parpadeo (true=ON, false=OFF)
+bool led_mp3_estado_anterior = false;      // Estado anterior antes de reproducir
 
 // Función para crear la tarea
 void crearTareaNeoPixel(void)
@@ -78,8 +78,8 @@ void tareaNeoPixel(void *pvParameters)
     neopixel.init(); // Inicializa el NeoPixel
 
     // Inicializar LED MP3
-    pinMode(LED_MP3, OUTPUT);      // Configurar pin como salida
-    digitalWrite(LED_MP3, LOW);    // Empezar apagado
+    pinMode(LED_MP3, OUTPUT);   // Configurar pin como salida
+    digitalWrite(LED_MP3, LOW); // Empezar apagado
 
     // Ejemplo de uso de patrones semánticos
     /* LOG("Ejecutando parpadeo RF 433MHz...");
@@ -97,7 +97,7 @@ void tareaNeoPixel(void *pvParameters)
 
         check_stop_carga_sistema(); // Verifica si hay un stop de carga de sistema pendiente
         check_servidor_status();    // Verifica si hay cambios de estado del servidor pendientes
-        check_error_mp3();          // Verifica si hay cambios de estado del error MP3 pendientes
+        //check_error_mp3();          // Verifica si hay cambios de estado del error MP3 pendientes
         check_led_rf_rx();          // Verifica si hay un LED RF pendiente
         check_led_server_data();    // Verifica si hay datos del servidor pendientes
         check_led_mp3_status();     // Verifica si hay cambios de estado del LED MP3 pendientes
@@ -254,7 +254,7 @@ void async_error_mp3_activar(void)
     pendiente_error_mp3_activar = true; // Marcar que hay un cambio de estado pendiente
     delay(10);                          // Esperar un poco para evitar colisiones
 
-    //Serial.println("[ASYNC] Solicitando activación de error MP3");
+    // Serial.println("[ASYNC] Solicitando activación de error MP3");
 }
 
 /*
@@ -270,7 +270,7 @@ void async_error_mp3_desactivar(void)
     pendiente_error_mp3_desactivar = true; // Marcar que hay un cambio de estado pendiente
     delay(10);                             // Esperar un poco para evitar colisiones
 
-    //Serial.println("[ASYNC] Solicitando desactivación de error MP3");
+    // Serial.println("[ASYNC] Solicitando desactivación de error MP3");
 }
 
 void check_error_mp3(void)
@@ -282,7 +282,7 @@ void check_error_mp3(void)
 
         neopixel.activarErrorMP3(); // Activar sistema de error MP3
         return;
-    }    // Verificar desactivación del error MP3
+    } // Verificar desactivación del error MP3
     if (pendiente_error_mp3_desactivar)
     {
         pendiente_error_mp3_desactivar = false; // Marcar que ya no hay un estado pendiente
@@ -301,7 +301,8 @@ void check_led_rf_rx(void)
     pendiente_led_rf_rx = false; // Marcar que ya no hay un LED RF pendiente
 
     // CAMBIO: RF puede interrumpir MP3, solo verificar busy para otros patrones
-    if (neopixel.isBusy() && !neopixel.isMP3Active()) {
+    if (neopixel.isBusy() && !neopixel.isMP3Active())
+    {
         return; // Solo bloquear si no es MP3 ejecutándose
     }
 
@@ -407,9 +408,9 @@ void async_led_mp3_stop_reproduciendo(int8_t estado_final)
     if (pendiente_led_mp3_stop_reproduciendo) // Si ya hay un estado pendiente, no hacer nada
         return;
 
-    pendiente_led_mp3_stop_reproduciendo = true; // Marcar que hay un cambio de estado pendiente
+    pendiente_led_mp3_stop_reproduciendo = true;  // Marcar que hay un cambio de estado pendiente
     pendiente_led_mp3_stop_estado = estado_final; // Guardar el estado final deseado
-    delay(10);                                   // Esperar un poco para evitar colisiones
+    delay(10);                                    // Esperar un poco para evitar colisiones
 }
 
 /*
@@ -425,9 +426,9 @@ void check_led_mp3_status(void)
 
         // Detener modo reproduciendo si estaba activo
         led_mp3_estado_reproduciendo = false;
-        
+
         digitalWrite(LED_MP3, HIGH); // Encender LED fijo
-        return; // Salir para evitar procesar otros estados
+        return;                      // Salir para evitar procesar otros estados
     }
 
     // Verificar apagado del LED MP3 (prioridad alta)
@@ -437,9 +438,9 @@ void check_led_mp3_status(void)
 
         // Detener modo reproduciendo si estaba activo
         led_mp3_estado_reproduciendo = false;
-        
+
         digitalWrite(LED_MP3, LOW); // Apagar LED
-        return; // Salir para evitar procesar otros estados
+        return;                     // Salir para evitar procesar otros estados
     }
 
     // Verificar inicio de reproducción
@@ -449,11 +450,11 @@ void check_led_mp3_status(void)
 
         // Capturar estado actual antes de empezar reproducción
         led_mp3_estado_anterior = digitalRead(LED_MP3);
-        
-        led_mp3_estado_reproduciendo = true;  // Activar modo reproduciendo
-        led_mp3_timer = millis();             // Inicializar timer
-        led_mp3_estado_parpadeo = true;       // Empezar con LED ON
-        digitalWrite(LED_MP3, HIGH);          // Encender LED
+
+        led_mp3_estado_reproduciendo = true; // Activar modo reproduciendo
+        led_mp3_timer = millis();            // Inicializar timer
+        led_mp3_estado_parpadeo = true;      // Empezar con LED ON
+        digitalWrite(LED_MP3, HIGH);         // Encender LED
         return;
     }
 
@@ -463,20 +464,20 @@ void check_led_mp3_status(void)
         pendiente_led_mp3_stop_reproduciendo = false; // Marcar que ya no hay un estado pendiente
 
         led_mp3_estado_reproduciendo = false; // Desactivar modo reproduciendo
-        
+
         // Aplicar estado final según parámetro
         switch (pendiente_led_mp3_stop_estado)
         {
-            case -1: // Mantener estado anterior
-                digitalWrite(LED_MP3, led_mp3_estado_anterior ? HIGH : LOW);
-                break;
-            case 0:  // Apagar LED (reproducción falló)
-                digitalWrite(LED_MP3, LOW);
-                break;
-            case 1:  // Encender LED (reproducción exitosa)
-            default:
-                digitalWrite(LED_MP3, HIGH);
-                break;
+        case -1: // Mantener estado anterior
+            digitalWrite(LED_MP3, led_mp3_estado_anterior ? HIGH : LOW);
+            break;
+        case 0: // Apagar LED (reproducción falló)
+            digitalWrite(LED_MP3, LOW);
+            break;
+        case 1: // Encender LED (reproducción exitosa)
+        default:
+            digitalWrite(LED_MP3, HIGH);
+            break;
         }
         return;
     }
@@ -487,9 +488,9 @@ void check_led_mp3_status(void)
         // Verificar si han pasado 500ms para cambiar estado
         if (millis() - led_mp3_timer >= 500)
         {
-            led_mp3_timer = millis();                      // Resetear timer
+            led_mp3_timer = millis();                           // Resetear timer
             led_mp3_estado_parpadeo = !led_mp3_estado_parpadeo; // Alternar estado
-            
+
             // Aplicar nuevo estado al LED
             digitalWrite(LED_MP3, led_mp3_estado_parpadeo ? HIGH : LOW);
         }

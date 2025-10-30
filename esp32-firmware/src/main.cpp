@@ -38,7 +38,8 @@ void setup()
 {
 
   Serial.begin(115200);
-  LOG("\r\n\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE) + " " + String(SISTEMA_VERSION) + " " + String(SISTEMA_BUILD) + "\r\n\r\n");
+  LOG("\r\n\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE) + " ");
+  LOG(String(SISTEMA_VERSION) + " " + String(SISTEMA_BUILD) + " . TRJ VRS: " + String(TARJETA_VERSION) + "\r\n\r\n");
   LOG("Compilacion: " + String(SISTEMA_DATE) + "\r\n\r\n");
   LOG("Modelo: " + String(BOARD_MODELO) + "\r\n\r\n");
 
@@ -52,6 +53,11 @@ void setup()
   pinMode(LED_STATUS, OUTPUT);
   pinMode(AMPLIFICADOR, OUTPUT);
   pinMode(SALIDA_1, OUTPUT);
+
+#if defined(SALIDA_2)
+  pinMode(SALIDA_2, OUTPUT);
+  digitalWrite(SALIDA_2, LOW);
+#endif
 
   pinMode(PIN_ENT_DIG_1, INPUT_PULLUP);
   pinMode(LED_MP3, OUTPUT);

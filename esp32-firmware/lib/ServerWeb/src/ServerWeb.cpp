@@ -188,6 +188,7 @@ void ServerWeb::initServer()
   url_info1Ctrl();         // Registrar la ruta para obtener la info de un control
 
   url_borrar1RedWifi(); // Registrar la ruta para borrar una red WiFi
+  gestionWifi();        // Registrar la ruta para la gestión de WiFi
 
   url_cmdSerial(); // Registrar la ruta para el comando serial
 
@@ -223,22 +224,6 @@ void ServerWeb::configurarCaptivePortal()
 
     /* request->redirect("/");  */
   };
-
-  // Respuestas para detección de captive portal
-
-  // Android (múltiples versiones)
-  /* server->on("/generate_204", HTTP_GET, redirectToIndex);
-  server->on("/gen_204", HTTP_GET, redirectToIndex);
-  server->on("/connectivitycheck.gstatic.com/generate_204", HTTP_GET, redirectToIndex);
-
-  // iOS (múltiples versiones)
-  server->on("/hotspot-detect.html", HTTP_GET, redirectToIndex);
-  server->on("/library/test/success.html", HTTP_GET, redirectToIndex);
-  server->on("/captive.apple.com/hotspot-detect.html", HTTP_GET, redirectToIndex);
-
-  // Windows
-  server->on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest *request)
-             { request->send(200, "text/plain", "Microsoft Connect Test"); }); */
 
   // Ruta raíz que sirve tu index
   server->on("/", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -377,6 +362,8 @@ void ServerWeb::cmdSerialFast(AsyncWebServerRequest *request, const String &coma
 
   // Enviar la respuesta al cliente
   request->send(200, "application/json", Data.jsonCMDSerial);
+
+  // Serial.println("\r\n\r\nRSP CMD FAST: " + String(Data.jsonCMDSerial));
 
   // Limpiar el buffer Data.jsonCMDSerial
   memset(Data.jsonCMDSerial, 0, sizeof(Data.jsonCMDSerial));

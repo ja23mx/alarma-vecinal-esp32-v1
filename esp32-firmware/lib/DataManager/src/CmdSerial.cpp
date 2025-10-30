@@ -637,7 +637,7 @@ static void cmdset1RedWifi(DataManager *self, const String &params)
 
     self->guardarRedWiFi(red_x.c_str(), clave_x.c_str()); // Llama a la función para borrar la red WiFi
     jsonRspHeader("set1RedWifi", "Guardado de 1 red WiFi", self->rspMetodo);
-    LOG("\r\ncmdborrar1RedWifi. Respuesta: " + String(self->jsonCMDSerial));
+    LOG("\r\ncmdset1RedWifi. Respuesta: " + String(self->jsonCMDSerial));
 }
 
 static void cmdgetRedesWifi(DataManager *self, const String &params)
