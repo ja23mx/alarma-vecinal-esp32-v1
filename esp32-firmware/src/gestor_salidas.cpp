@@ -59,8 +59,7 @@ void tareaGestionSalida(void *pvParameters)
 {
 
     LOG("\r\n\r\nTarea de gestion salida iniciada...");
-
-    setup_led_fade(); // Configurar el temporizador LEDC
+    setup_led_fade(); // Configurar el temporizador LEDC para el fade
 
     while (true)
     {
@@ -307,8 +306,16 @@ void setup_led_fade(void) // 3434
         Serial.println("Error configurando el timer LEDC");
     }
 
-    // Configurar los canales LEDC en un bucle
-    for (int i = 0; i < 1; i++)
+    // Calcular cuántos pines válidos (> 0) hay en el array
+    uint8_t num_pines_validos = 0;
+    for (int i = 0; i < GST_SALIDA_NUM_PRF; i++)
+    {
+        if (pines_sal_arr[i] > 0)
+            num_pines_validos++;
+    }
+
+    // Configurar los canales LEDC solo para pines válidos
+    for (int i = 0; i < num_pines_validos; i++)
     {
         if (pines_sal_arr[i] != 0) // Solo configurar pines válidos (no 0)
         {

@@ -15,15 +15,11 @@
 // ==============================================================================================
 // PINES COMUNES A TODAS LAS TARJETAS
 // ==============================================================================================
-#define BTN_PROG 0       // Pin del botón de programación
-#define LED_STATUS 2     // Pin del LED de estado
-#define LED_ST_ON 1      // Estado del LED encendido
-#define LED_ST_OFF 0     // Estado del LED apagado
-#define RF_RX 4          // Pin de recepción de señales RF
-#define AMP_ON 1         // Estado del amplificador encendido
-#define AMP_OFF 0        // Estado del amplificador apagado
-#define PIN_ENT_DIG_1 35 // Pin de entrada digital 1
-#define PIN_RELE 15      // Pin del relé
+#define BTN_PROG 0   // Pin del botón de programación
+#define LED_STATUS 2 // Pin del LED de estado
+#define LED_ST_ON 1  // Estado del LED encendido
+#define LED_ST_OFF 0 // Estado del LED apagado
+#define RF_RX 4      // Pin de recepción de señales RF
 
 // ==============================================================================================
 // CONFIGURACIÓN ESPECÍFICA POR TARJETA
@@ -87,16 +83,16 @@
 
 #elif defined(TARJETA_SL_DG)
 // TARJETA SL DG
-#define SALIDA_1 27 // 16 // Pin de salida 1
-#define SALIDA_2 32 // 17 // Pin de salida 2
+#define SALIDA_1 16 // Pin de salida 1
+#define SALIDA_2 17 // Pin de salida 2
 
 #define PIN_NEOPIXEL 19 // Pin de Neopixel
 
-#define AMPLIFICADOR 16    // 27    // Pin de control del amplificador
+#define AMPLIFICADOR 27    // Pin de control del amplificador
 #define PIN_MP3_UART_RX 12 // Pin de recepción del UART1
 #define PIN_MP3_UART_TX 14 // Pin de transmisión del UART1
 #define PIN_MP3_BUSY 26    // Pin de busy del MP3
-#define LED_MP3 17         // 32         // Pin del LED del MP3
+#define LED_MP3 32         // Pin del LED del MP3
 
 #define TARJETA_VERSION "SL_DG"
 
