@@ -49,6 +49,7 @@ public:
 
     // wifi seccion /////////////////////
     void url_borrar1RedWifi();
+    void gestionWifi();
     /////////////////////////////////////
 
     void url_cmdSerial();

@@ -48,17 +48,22 @@ void tareaProcesos(void *pvParameters)
 
     LOG("\r\n\r\nTarea de procesos iniciada...");
 
-    delay(3000);   // Espera que DFPlayer esté listo
-    mp3_init();    // Inicializa el módulo MP3
+#ifdef VOZ_ENABLED
+    delay(3000); // Espera que DFPlayer esté listo
+    mp3_init();  // Inicializa el módulo MP3
+#endif
+
     rf_esp_init(); // Inicializa el receptor RF
 
     proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
 
     while (true)
     {
+#ifdef VOZ_ENABLED
         lectura_pto(); // Lee el estado del módulo MP3
         mp3_loop();    // Verifica si hay eventos en el módulo MP3
-        rf_loop();     // Verifica si hay una señal RF
+#endif
+        rf_loop(); // Verifica si hay una señal RF
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -72,7 +77,7 @@ void play_1pista_alarma(uint16_t pista)
         LOG("\r\n\r\nMP3 NO CONFIGURADO");
         return;
     }
-    
+
     if (pista < 3) // Si la pista es menor a 3, no se reproduce nada
     {
         return;

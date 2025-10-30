@@ -149,8 +149,7 @@ void DataManager::rstData(void)
     }
     else
     {
-        guardarRedWiFi("REDLOCAL", "TLWN7200NDMX2148");        // Guardar red WiFi de ejemplo
-        guardarRedWiFi("INTERNETLOCAL", "T3mp0r4l2512230014"); // Guardar red WiFi de ejemplo
+        guardarRedWiFi("REDALERTA", "@TLWN_7200NDMX2148"); // Guardar red WiFi de ejemplo
     }
 
     rstDataCnfCtrl(); // Restablecer datos de configuración de controles

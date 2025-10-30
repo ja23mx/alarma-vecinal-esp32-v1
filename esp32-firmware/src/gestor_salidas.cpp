@@ -19,7 +19,7 @@ TaskHandle_t tareaGestionSalidaHandle = NULL; // Handle para la tarea de proceso
 
 DATOS_INSTRUCCION cmdSalidaData; // Estructura para almacenar el comando de salida
 
-uint8_t pines_sal_arr[GST_SALIDA_NUM_PRF] = {SALIDA_1, 0, 0, 0}; // Pines de las salidas de la alarma
+uint8_t pines_sal_arr[GST_SALIDA_NUM_PRF] = {SALIDA_1, SALIDA_2, 0, 0}; // Pines de las salidas de la alarma
 
 // 0 = OFF, 1 = ON-OFF, 2 = PWM
 uint8_t config_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0}; // Configuración de las salidas de la alarma

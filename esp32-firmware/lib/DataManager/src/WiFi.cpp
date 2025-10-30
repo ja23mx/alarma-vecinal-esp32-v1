@@ -8,110 +8,38 @@ bool DataManager::guardarRedWiFi(const char *ssid, const char *password)
     // Verificar si el espacio de nombres NVS está disponible
     if (!nvsData.begin(NAME_SPACE_WIFI, false))
     {
-        controlesCnfFlag = false; // Indicar que no se cargaron las configuraciones
+        controlesCnfFlag = false;
         LOG("\r\nError al abrir el espacio de redes wifi.");
         strcpy(rspMetodo, "Error. Al abrir el espacio de redes wifi");
         return false;
     }
 
-    // Leer las redes existentes desde NVS
-    String jsonStr;
-    if (nvsData.isKey("wifi_networks"))
-    {
-        jsonStr = nvsData.getString("wifi_networks", "{}");
-    }
-    else
-    {
-        jsonStr = "{}"; // Si no existe, inicializar un JSON vacío
-    }
-
-    // LOGF("\r\nJSON NVS: %s", jsonStr.c_str()); // Imprimir el JSON leído para depuración
-
-    // Parsear el JSON
+    // Crear un nuevo JSON desde cero
     StaticJsonDocument<1024> doc;
-    DeserializationError error = deserializeJson(doc, jsonStr);
-    if (error)
-    {
-        LOG("\r\nError al parsear el JSON de redes WiFi.");
-        strcpy(rspMetodo, "Error. Al parsear el JSON de redes WiFi");
-        return false;
-    }
+    JsonArray networks = doc.createNestedArray("networks");
 
-    // LOG("\r\n\r\nJSON 2: "); // Imprimir el JSON leído para depuración
-    // serializeJsonPretty(doc, Serial);
+    // Agregar la nueva red (única)
+    JsonObject newNetwork = networks.createNestedObject();
+    newNetwork["rd"] = ssid;
+    newNetwork["cl"] = password;
 
-    // Obtener el array de redes
-    JsonArray networks = doc["networks"].as<JsonArray>();
-    if (!networks)
-    {
-        networks = doc.createNestedArray("networks");
-    }
-
-    // LOG("\r\n\r\nJSON 3: "); // Imprimir el JSON leído para depuración
-    // serializeJsonPretty(doc, Serial);
-
-    // Verificar si la red ya existe
-    bool redExistente = false;
-    for (JsonObject network : networks)
-    {
-        if (strcmp(network["rd"].as<const char *>(), ssid) == 0)
-        {
-            if (strcmp(network["cl"].as<const char *>(), password) == 0)
-            {
-                // LOGF("\r\nLa red ya existe: %s", ssid);
-                strcpy(rspMetodo, "Error. La red ya existe");
-                return false; // La red ya existe, no se guarda
-            }
-            else
-            {
-                // LOG("\r\nLa red ya existe. Actualizando la clave...");
-                strcpy(rspMetodo, "Ok. Clave actualizada");
-                network["cl"] = password; // Actualizar la contraseña
-                redExistente = true;
-                return true; // La red ya existe, pero se actualiza la contraseña
-            }
-        }
-    }
-
-    //LOG("\r\n\r\nJSON 4: "); // Imprimir el JSON leído para depuración
-    //serializeJsonPretty(doc, Serial);
-
-    // Si no existe, agregar la nueva red
-    if (!redExistente)
-    {
-        // Verificar si el límite de 5 redes se ha alcanzado
-        if (networks.size() >= 5)
-        {
-            LOG("\r\nSe alcanzó el límite de 5 redes. Eliminando la red más antigua...");
-            networks.remove(0); // Eliminar la red más antigua (primer elemento del array)
-        }
-
-        JsonObject newNetwork = networks.createNestedObject();
-        newNetwork["rd"] = ssid;
-        newNetwork["cl"] = password;
-    }
-
-    // Serializar el JSON actualizado
+    // Serializar el JSON
     String updatedJsonStr;
     serializeJson(doc, updatedJsonStr);
 
-    //LOG("\r\n\r\n\r\nJSON actualizado: "); // Imprimir el JSON actualizado para depuración
-    //serializeJsonPretty(doc, Serial);
-    //LOGF("\r\nJSON actualizado: %s", updatedJsonStr.c_str()); // Imprimir el JSON actualizado para depuración
-
-    // Guardar el JSON actualizado en NVS
+    // Guardar el JSON en NVS
     if (!nvsData.putString("wifi_networks", updatedJsonStr))
     {
         LOG("\r\nError al guardar el JSON en NVS.");
-        nvsData.end(); // Asegurarse de cerrar el espacio de nombres
+        nvsData.end();
         strcpy(rspMetodo, "Error. Al guardar el JSON");
         return false;
     }
 
-    nvsData.end(); // Asegurarse de que los cambios se guarden en NVS
+    nvsData.end();
 
-    doc.clear();            // Limpiar el documento JSON para liberar memoria
-    updatedJsonStr.clear(); // Limpiar la cadena JSON para liberar memoria
+    doc.clear();
+    updatedJsonStr.clear();
 
     LOG("\r\nRed WiFi guardada correctamente.");
     strcpy(rspMetodo, "Ok. Red WiFi guardada correctamente");
