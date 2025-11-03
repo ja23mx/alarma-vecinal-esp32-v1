@@ -8,9 +8,9 @@
 // ==============================================================================================
 // #define TARJETA_DDI // Tarjeta DDI
 // #define TARJETA_MENIAM   // Tarjeta MENIAM
-// #define TARJETA_NEGRA // Tarjeta NEGRA (default)
-// #define TARJETA_MN_2_0 // Tarjeta MN 2.0
-#define TARJETA_SL_DG // Tarjeta Salidas Digitales
+#define TARJETA_NEGRA // Tarjeta NEGRA (default)
+//#define TARJETA_MN_2_0 // Tarjeta MN 2.0
+// #define TARJETA_SL_DG // Tarjeta Salidas Digitales
 
 // ==============================================================================================
 // PINES COMUNES A TODAS LAS TARJETAS
@@ -49,18 +49,24 @@
 
 #elif defined(TARJETA_NEGRA)
 // TARJETA NEGRA (configuración por defecto)
-#define SALIDA_1 33        // Pin de salida 1
+#define SALIDA_1 33 // Pin de salida 1
+#define SALIDA_2 17 // Pin de salida 2
+
+#define PIN_NEOPIXEL 19 // Pin de Neopixel
+
+#define VOZ_ENABLED        // Habilitar funcionalidad de voz
 #define AMPLIFICADOR 27    // Pin de control del amplificador
 #define PIN_MP3_UART_RX 12 // Pin de recepción del UART1
 #define PIN_MP3_UART_TX 14 // Pin de transmisión del UART1
 #define PIN_MP3_BUSY 26    // Pin de busy del MP3
 #define LED_MP3 32         // Pin del LED del MP3
-#define PIN_NEOPIXEL 19    // Pin de Neopixel
+
 #define TARJETA_VERSION "NEGRA"
 
 #elif defined(TARJETA_MN_2_0)
 // TARJETA MN 2.0
 #define SALIDA_1 25 // Pin de salida 1
+#define SALIDA_2 26 // Pin de salida 2
 
 #define PIN_NEOPIXEL 19 // Pin de Neopixel
 
@@ -182,11 +188,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define TOPIC_SUS_1 "NODO/" // Topico de suscripción MQTT
-#define TOPIC_SUS_2 "/CMD"
-#define TOPIC_SUS_3 "/ACK"
+#define TOPIC_SUS_2 "/CMD/"
+#define TOPIC_SUS_3 "/ACK/"
 
-#define TOPIC_PUB "CONTROLADOR/HB"        // Topico de publicación MQTT de heartbeat
-#define TOPIC_STATUS "CONTROLADOR/STATUS" // Topico de publicación MQTT de heartbeat
+#define TOPIC_PUB "CONTROLADOR/HB/"        // Topico de publicación MQTT de heartbeat
+#define TOPIC_STATUS "CONTROLADOR/STATUS/" // Topico de publicación MQTT de heartbeat
 
 #define MQTT_CNF_TM_HB_SG 60             // Tiempo de espera en segungos para el heartbeat MQTT
 #define MQTT_CNF_TM_REV_LOOP_MS 500      // Tiempo de espera en milisegundos para el bucle MQTT

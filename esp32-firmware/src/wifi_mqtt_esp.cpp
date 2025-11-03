@@ -155,6 +155,13 @@ bool gestionar_conexion_wifi(void)
         {
             envio_msg_init_broker(); // Enviar el mensaje de inicialización al broker MQTT
             Serial.print("\r\n\r\nMQTT inicializado correctamente.");
+
+            /* unsigned long now = millis();
+            while (millis() - now < 30000) // Esperar 30 segundos para recibir mensajes MQTT
+            {
+                mqtt_loop(); // Ejecutar el loop de MQTT
+            } */
+            
             return true; // Retornar verdadero si la conexión es exitosa
         }
         else

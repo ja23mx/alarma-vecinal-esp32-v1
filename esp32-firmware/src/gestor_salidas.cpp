@@ -12,61 +12,76 @@
 #define LEDC_TIMER LEDC_TIMER_0
 #define LEDC_MODE LEDC_LOW_SPEED_MODE
 #define LEDC_CHANNEL_0 LEDC_CHANNEL_0
-#define LEDC_DUTY_RES LEDC_TIMER_8_BIT // Resolución de 8 bits (0-255)
-#define LEDC_FREQUENCY (5000)          // Frecuencia en Hz
+#define LEDC_DUTY_RES LEDC_TIMER_8_BIT
+#define LEDC_FREQUENCY (5000)
 
-TaskHandle_t tareaGestionSalidaHandle = NULL; // Handle para la tarea de procesos
+TaskHandle_t tareaGestionSalidaHandle = NULL;
 
-DATOS_INSTRUCCION cmdSalidaData; // Estructura para almacenar el comando de salida
+// ✅ Mutex para proteger variables compartidas
+SemaphoreHandle_t mutexGestionSalida = NULL;
 
-uint8_t pines_sal_arr[GST_SALIDA_NUM_PRF] = {SALIDA_1, SALIDA_2, 0, 0}; // Pines de las salidas de la alarma
+DATOS_INSTRUCCION cmdSalidaData;
 
-// 0 = OFF, 1 = ON-OFF, 2 = PWM
-uint8_t config_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0}; // Configuración de las salidas de la alarma
+uint8_t pines_sal_arr[GST_SALIDA_NUM_PRF] = {SALIDA_1, SALIDA_2, 0, 0};
+uint8_t config_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0};
 
-unsigned long time_init_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0}; // Tiempo de inicio de las salidas de la alarma
-long time_limite_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0};        // Tiempo limite de las salidas de la alarma
+unsigned long time_init_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0};
+long time_limite_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0};
 
-bool nueva_cnf = false; // Variable para verificar si hay una nueva configuración de la alarma
+bool nueva_cnf = false;
 
-unsigned long timer_init_fade[4];   // Timers para el fade
-unsigned long timer_limite_fade[4]; //
-uint8_t nivel_fade_arr[4];          //
-bool ciclo_fade[4];                 // Ciclo de fade 0-ascendente, 1-descendente
+unsigned long timer_init_fade[4];
+unsigned long timer_limite_fade[4];
+uint8_t nivel_fade_arr[4];
+bool ciclo_fade[4];
 
-std::vector<String> infoComandosSalidas; // Vector para almacenar los comandos de salida
-std::vector<long> numerosArray;          // Vector para almacenar los números separados
+std::vector<String> infoComandosSalidas;
+std::vector<long> numerosArray;
+
+// ✅ Bandera para evitar reinstalación
+static bool ledc_fade_installed = false;
 
 void crearTareaGestionSalida(void)
 {
+    LOG("\r\n\r\nCreando tarea de gestion salida...");
 
-    LOG("\r\n\r\nCreando tarea de alarma...");
+    // ✅ Crear mutex
+    mutexGestionSalida = xSemaphoreCreateMutex();
+    if (mutexGestionSalida == NULL)
+    {
+        LOG("\r\n ERROR: No se pudo crear mutex de gestion salida");
+        return;
+    }
 
-    // Crear la tarea
+    // ✅ Stack aumentado a 4096
     xTaskCreate(
-        tareaGestionSalida,       // Función de la tarea
-        "TareaGestionSalida",     // Nombre de la tarea
-        2048,                     // Tamaño del stack en palabras
-        NULL,                     // Parámetros de entrada
-        3,                        // Prioridad de la tarea
-        &tareaGestionSalidaHandle // Guardar el handle de la tarea
-    );
+        tareaGestionSalida,
+        "TareaGestionSalida",
+        4096, // ✅ Aumentado para LEDC operations
+        NULL,
+        3,
+        &tareaGestionSalidaHandle);
 
     delay(10);
 }
 
 void tareaGestionSalida(void *pvParameters)
 {
-
     LOG("\r\n\r\nTarea de gestion salida iniciada...");
-    setup_led_fade(); // Configurar el temporizador LEDC para el fade
+
+    // ✅ Proteger setup con try-catch
+    if (!setup_led_fade())
+    {
+        LOG("\r\n ERROR CRITICO: Fallo en setup_led_fade");
+        vTaskDelete(NULL);
+        return;
+    }
 
     while (true)
     {
-
-        cnfSalidas();                       // Llamar a la función de configuración de salidas
-        revTimerSalida();                   // Llamar a la función de temporizador de salidas
-        vTaskDelay(1 / portTICK_PERIOD_MS); // Esperar 10 ms antes de la siguiente iteración
+        cnfSalidas();
+        revTimerSalida();
+        vTaskDelay(10 / portTICK_PERIOD_MS); // ✅ Cambiado de 1ms a 10ms
     }
 }
 
@@ -262,13 +277,19 @@ void cnfSalidas(void)
 
 void async_gestion_salida(void)
 {
-    if (!cmdSalidasPendiente) //
-        return;               // Si no hay comandos de salida pendientes, salir de la función
+    if (!cmdSalidasPendiente)
+        return;
 
-    cmdSalidasPendiente = false;      // Marcar como no pendiente
-    infoComandosSalidas = cmdSalidas; // Guardar los comandos en el vector de comandos de salida local
-    nueva_cnf = true;                 // Marcar como nueva configuración
-    delay(10);                        // Esperar 10 ms antes de continuar
+    // ✅ Proteger acceso con mutex
+    if (mutexGestionSalida != NULL && xSemaphoreTake(mutexGestionSalida, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        cmdSalidasPendiente = false;
+        infoComandosSalidas = cmdSalidas;
+        nueva_cnf = true;
+        xSemaphoreGive(mutexGestionSalida);
+    }
+
+    delay(10);
 }
 
 void reconfigurar_pin_para_fade(uint8_t salida_idx)
@@ -292,21 +313,29 @@ void reconfigurar_pin_para_fade(uint8_t salida_idx)
     ledc_channel_config(&ledc_channel);
 }
 
-void setup_led_fade(void) // 3434
+// ✅ Modificar setup_led_fade para retornar éxito/fallo
+bool setup_led_fade(void)
 {
-    // Configurar el temporizador LEDC
+    // ✅ Evitar reinstalación
+    if (ledc_fade_installed)
+    {
+        LOG("\r\nLEDC fade ya instalado, omitiendo...");
+        return true;
+    }
+
     ledc_timer_config_t ledc_timer = {
         .speed_mode = LEDC_MODE,
         .duty_resolution = LEDC_DUTY_RES,
         .timer_num = LEDC_TIMER,
         .freq_hz = LEDC_FREQUENCY,
         .clk_cfg = LEDC_AUTO_CLK};
+
     if (ledc_timer_config(&ledc_timer) != ESP_OK)
     {
         Serial.println("Error configurando el timer LEDC");
+        return false;
     }
 
-    // Calcular cuántos pines válidos (> 0) hay en el array
     uint8_t num_pines_validos = 0;
     for (int i = 0; i < GST_SALIDA_NUM_PRF; i++)
     {
@@ -314,33 +343,52 @@ void setup_led_fade(void) // 3434
             num_pines_validos++;
     }
 
-    // Configurar los canales LEDC solo para pines válidos
     for (int i = 0; i < num_pines_validos; i++)
     {
-        if (pines_sal_arr[i] != 0) // Solo configurar pines válidos (no 0)
+        if (pines_sal_arr[i] != 0)
         {
-            pinMode(pines_sal_arr[i], OUTPUT); // Configurar el pin como salida
+            pinMode(pines_sal_arr[i], OUTPUT);
 
             ledc_channel_config_t ledc_channel = {
                 .gpio_num = pines_sal_arr[i],
                 .speed_mode = LEDC_MODE,
-                .channel = (ledc_channel_t)i, // Asigna LEDC_CHANNEL_0, LEDC_CHANNEL_1, etc.
+                .channel = (ledc_channel_t)i,
                 .intr_type = LEDC_INTR_DISABLE,
-                .timer_sel = LEDC_TIMER, // Todos los canales usan el mismo temporizador
+                .timer_sel = LEDC_TIMER,
                 .duty = 0,
                 .hpoint = 0};
 
             if (ledc_channel_config(&ledc_channel) != ESP_OK)
-                Serial.printf("\r\n\r\nError configurando el canal LEDC %d para el pin %d\n", i, pines_sal_arr[i]);
+            {
+                Serial.printf("\r\nError configurando canal LEDC %d para pin %d\n", i, pines_sal_arr[i]);
+                return false;
+            }
             else
-                Serial.printf("\r\n\r\nCanal LEDC %d configurado para el pin %d\n", i, pines_sal_arr[i]);
+            {
+                Serial.printf("\r\nCanal LEDC %d configurado para pin %d\n", i, pines_sal_arr[i]);
+            }
         }
     }
 
-    // Instalar el servicio de fade (solo se hace una vez para todos los canales)
-    if (ledc_fade_func_install(0) != ESP_OK) // 0 son flags de interrupción, por defecto
+    // ✅ Proteger instalación de fade service
+    esp_err_t fade_install_result = ledc_fade_func_install(0);
+    if (fade_install_result == ESP_OK)
     {
-        Serial.println("Error instalando el servicio de fade LEDC");
+        ledc_fade_installed = true;
+        Serial.println("Servicio de fade LEDC instalado correctamente");
+        return true;
+    }
+    else if (fade_install_result == ESP_ERR_INVALID_STATE)
+    {
+        // Ya estaba instalado
+        ledc_fade_installed = true;
+        Serial.println("Servicio de fade ya estaba instalado");
+        return true;
+    }
+    else
+    {
+        Serial.printf("Error instalando servicio de fade: 0x%x\n", fade_install_result);
+        return false;
     }
 }
 

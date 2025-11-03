@@ -15,7 +15,8 @@ String MqttTools::payload = "";
 MqttTools::MqttTools(const char *server, int port, const char *user, const char *pass)
     : client(espClient)
 {
-    client.setServer(server, port);
+    client.setBufferSize(2048);     // Aumentar buffer a 2048 bytes
+    client.setServer(server, port); // Configurar el servidor MQTT
 }
 
 void mqtt_callback(char *topic, byte *payload, unsigned int length)

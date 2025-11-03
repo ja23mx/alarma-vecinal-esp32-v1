@@ -9,36 +9,51 @@
 #include "rf_esp.h"
 #include "voz_esp.h"
 
-TaskHandle_t tareaProcesosHandle = NULL; // Handle para la tarea de procesos
+TaskHandle_t tareaProcesosHandle = NULL;
+
+// ✅ Mutex para proteger estadoAlarma
+SemaphoreHandle_t mutexEstadoAlarma = NULL;
 
 // Función para crear la tarea
 void crearTareaProcesos(void)
 {
     LOG("\r\n\r\nCreando tarea de procesos...");
 
-    // Crear la tarea
+    // ✅ Crear mutex
+    mutexEstadoAlarma = xSemaphoreCreateMutex();
+    if (mutexEstadoAlarma == NULL)
+    {
+        LOG("\r\n ERROR: No se pudo crear mutex de estado alarma");
+        return;
+    }
+
+    // ✅ Stack aumentado a 4096
     xTaskCreate(
-        tareaProcesos,       // Función de la tarea
-        "TareaProcesos",     // Nombre de la tarea
-        2048,                // Tamaño del stack en palabras
-        NULL,                // Parámetros de entrada
-        1,                   // Prioridad de la tarea
-        &tareaProcesosHandle // Guardar el handle de la tarea
-    );
+        tareaProcesos,
+        "TareaProcesos",
+        4096, // Aumentado para mp3_init() + rf_esp_init()
+        NULL,
+        1,
+        &tareaProcesosHandle);
 
     delay(10);
 }
 
 void cambiar_estado_procesos_alarma(uint8_t estado)
 {
-    // Cambiar el estado de la alarma
+    if (tareaProcesosHandle == NULL)
+        return;
+
+    // ✅ Corregido el bug
     if (estado == 0)
     {
-        vTaskSuspend(tareaProcesosHandle); // pausa la tarea de alarma
+        vTaskSuspend(tareaProcesosHandle);
+        LOG("\r\nTarea de procesos SUSPENDIDA");
     }
     else
     {
-        vTaskSuspend(tareaProcesosHandle); // reanuda la tarea de alarma
+        vTaskResume(tareaProcesosHandle); // ✅ RESUME en lugar de SUSPEND
+        LOG("\r\nTarea de procesos REANUDADA");
     }
 }
 
@@ -49,20 +64,22 @@ void tareaProcesos(void *pvParameters)
     LOG("\r\n\r\nTarea de procesos iniciada...");
 
 #ifdef VOZ_ENABLED
-    delay(3000);                                     // Espera que DFPlayer esté listo
-    mp3_init();                                      // Inicializa el módulo MP3
-    proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
+    delay(3000);
+
+    mp3_init();
+
 #endif
 
-    rf_esp_init(); // Inicializa el receptor RF
+    // ✅ Verificar inicialización
+    rf_esp_init();
 
     while (true)
     {
 #ifdef VOZ_ENABLED
-        lectura_pto(); // Lee el estado del módulo MP3
-        mp3_loop();    // Verifica si hay eventos en el módulo MP3
+        lectura_pto();
+        mp3_loop();
 #endif
-        rf_loop(); // Verifica si hay una señal RF
+        rf_loop();
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
@@ -70,20 +87,23 @@ void tareaProcesos(void *pvParameters)
 
 void play_1pista_alarma(uint16_t pista)
 {
-
-    if (!mp3State.Configurado) // Si el MP3 no está configurado, no se reproduce nada
+    if (!mp3State.Configurado)
     {
         LOG("\r\n\r\nMP3 NO CONFIGURADO");
         return;
     }
 
-    if (pista < 3) // Si la pista es menor a 3, no se reproduce nada
-    {
+    if (pista < 3)
         return;
+
+    // ✅ Proteger acceso con mutex
+    if (mutexEstadoAlarma != NULL && xSemaphoreTake(mutexEstadoAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        estadoAlarma.audio1Pista = pista;
+        estadoAlarma.origenEmg = AL_PLAY_1_PISTA;
+        estadoAlarma.alarma_on = 1;
+        xSemaphoreGive(mutexEstadoAlarma);
     }
 
-    estadoAlarma.audio1Pista = pista;         // Asigna la pista a reproducir
-    estadoAlarma.origenEmg = AL_PLAY_1_PISTA; // Origen de la emergencia, reproducción de una pista de audio
-    estadoAlarma.alarma_on = 1;
     delay(10);
 }
