@@ -60,90 +60,101 @@ void async_config_mp3_cmd(void)
 
     Serial.println("\r\n\r\nconfig_mp3_cmd: " + comando);
 
-    if (GestorCmd.separarComando(comando, cmdDataVoz))
+    if (!GestorCmd.separarComando(comando, cmdDataVoz))
     {
+        Serial.println("\r\n\r\nError al separar comando de voz");
+        return;
+    }
 
-        LOGF("\r\nComando: %s", cmdDataVoz.cmd.c_str());
-        LOGF("\r\nNum Prf: %s", cmdDataVoz.numPeriferico.c_str());
-        LOGF("\r\nParametros: %s", cmdDataVoz.parametros.c_str());
+    LOGF("\r\nComando: %s", cmdDataVoz.cmd.c_str());
+    LOGF("\r\nNum Prf: %s", cmdDataVoz.numPeriferico.c_str());
+    LOGF("\r\nParametros: %s", cmdDataVoz.parametros.c_str());
 
-        if (cmdDataVoz.cmd == "SA") // Si el comando es "SD"
+    if (cmdDataVoz.cmd != "SA") // Si el comando es "SD"
+    {
+        LOG("\r\n\r\nComando de audio SA detectado");
+        return;
+    }
+
+    uint8_t numSalida = cmdDataVoz.numPeriferico.toInt(); // Convertir el número de salida a entero
+    // salida fuera de rango
+    if (numSalida != 1)
+    {
+        LOGF("\r\n\r\nError: Salida de audio fuera de rango: %d", numSalida);
+        return;
+    }
+
+    int configuracion;
+
+    GestorCmd.separarArrNumeros(cmdDataVoz.parametros, ':', numerosArrVoz); // Separar los parámetros
+    configuracion = numerosArrVoz[0];                                       // Obtener la configuración
+
+    /* for (size_t i = 0; i < numerosArrVoz.size(); i++)
+    {
+        LOGF("\r\n\r\nnumerosArrVoz[%d]: %d", i, numerosArrVoz[i]);
+    } */
+
+    switch (configuracion)
+    {
+    // APAGADO 0:0:0
+    case 0:
+        // todo en 0 y debe estar reproduciendo
+        if (numerosArrVoz[1] == 0 && numerosArrVoz[2] == 0 && async_init_mp3_cmd_flag == true)
         {
-            uint8_t numSalida = cmdDataVoz.numPeriferico.toInt(); // Convertir el número de salida a entero
-            // salida fuera de rango
-            if (numSalida == 1)
-            {
-
-                int configuracion;
-
-                GestorCmd.separarArrNumeros(cmdDataVoz.parametros, ':', numerosArrVoz); // Separar los parámetros
-                configuracion = numerosArrVoz[0];                                       // Obtener la configuración
-
-                /* for (size_t i = 0; i < numerosArrVoz.size(); i++)
-                {
-                    LOGF("\r\n\r\nnumerosArrVoz[%d]: %d", i, numerosArrVoz[i]);
-                } */
-
-                switch (configuracion)
-                {
-                // APAGADO 0:0:0
-                case 0:
-                    // todo en 0 y debe estar reproduciendo
-                    if (numerosArrVoz[1] == 0 && numerosArrVoz[2] == 0 && async_init_mp3_cmd_flag == true)
-                    {
-                        LOG("\r\n\r\n\r\ncmdAudioBusy: false\r\n\r\n");
-                        cmdAudioBusy = false;           // Reiniciar el estado del comando de audio
-                        async_stop_mp3_cmd_flag = true; // bandera para indicar si se ha detenido el comando MP3 via cmd
-                    }
-                    break;
-
-                // reproduccion de una pista una vez
-                case 1:
-                    LOG("\r\n\r\n\r\ncmdAudioBusy: true\r\n\r\n");
-                    cmdAudioBusy = true; // Reiniciar el estado del comando de audio
-                    async_init_mp3_cmd_flag = true;
-                    async_cnf_mp3_play_una_pista(numerosArrVoz[1]);
-                    break;
-
-                // reproduccion de una pista en bucle ******* REVISION. FALLA ********
-                case 2:
-                    async_init_mp3_cmd_flag = true;
-                    async_play_1_pista_flag_bucle = true; // bandera para indicar si se reproduce una pista en bucle
-                    async_play_1_pista_num = numerosArrVoz[1];
-                    break;
-
-                case 5:
-                    cnt_pistas = numerosArrVoz[1]; // Contador de pistas
-
-                    async_init_mp3_cmd_flag = true; // bandera para indicar si se ha inicializado el comando MP3 via cmd
-
-                    for (size_t i = 0; i < cnt_pistas; i++)
-                        lista_pistas[i] = numerosArrVoz[i + 2]; // Guardar la pista en la lista
-
-                    async_cnf_mp3_play_lista(lista_pistas, cnt_pistas); // Enviar la lista de pistas a reproducir
-                    break;
-
-                // reproduccion de lista temporizada
-                case 6:
-                    LOG("\r\n\r\n\r\ncmdAudioBusy: true\r\n\r\n");
-                    cmdAudioBusy = true; // Reiniciar el estado del comando de audio
-
-                    cnt_pistas = numerosArrVoz[1]; // Contador de pistas
-
-                    for (size_t i = 0; i < cnt_pistas; i++)
-                        lista_pistas[i] = numerosArrVoz[i + 3]; // Guardar la pista en la lista
-
-                    async_init_mp3_cmd_flag = true; // bandera para indicar si se ha inicializado el comando MP3 via cmd
-
-                    async_reproduccion_timer_flag = true;                      // bandera para indicar si se reproduce una pista en bucle
-                    async_reproduccion_timer_limite = numerosArrVoz[2] * 1000; // tiempo de reproduccion
-                    async_reproduccion_timer_inicio = millis();                // tiempo de inicio de la reproduccion
-
-                    async_cnf_mp3_play_lista(lista_pistas, cnt_pistas); // Enviar la lista de pistas a reproducir
-                    break;
-                }
-            }
+            LOG("\r\n\r\n\r\ncmdAudioBusy: false\r\n\r\n");
+            cmdAudioBusy = false;           // Reiniciar el estado del comando de audio
+            async_stop_mp3_cmd_flag = true; // bandera para indicar si se ha detenido el comando MP3 via cmd
         }
+        break;
+
+    // reproduccion de una pista una vez
+    case 1:
+        LOG("\r\n\r\n\r\ncmdAudioBusy: true\r\n\r\n");
+        cmdAudioBusy = true;             // Reiniciar el estado del comando de audio
+        async_stop_mp3_cmd_flag = false; // bandera para indicar si se ha detenido el comando MP3 via cmd
+        async_init_mp3_cmd_flag = true;
+        async_cnf_mp3_play_una_pista(numerosArrVoz[1]);
+        break;
+
+    // reproduccion de una pista en bucle ******* REVISION. FALLA ********
+    case 2:
+        async_stop_mp3_cmd_flag = false; // bandera para indicar si se ha detenido el comando MP3 via cmd
+        async_init_mp3_cmd_flag = true;
+        async_play_1_pista_flag_bucle = true; // bandera para indicar si se reproduce una pista en bucle
+        async_play_1_pista_num = numerosArrVoz[1];
+        break;
+
+    case 5:
+        cnt_pistas = numerosArrVoz[1]; // Contador de pistas
+
+        async_stop_mp3_cmd_flag = false; // bandera para indicar si se ha detenido el comando MP3 via cmd
+        async_init_mp3_cmd_flag = true;  // bandera para indicar si se ha inicializado el comando MP3 via cmd
+
+        for (size_t i = 0; i < cnt_pistas; i++)
+            lista_pistas[i] = numerosArrVoz[i + 2]; // Guardar la pista en la lista
+
+        async_cnf_mp3_play_lista(lista_pistas, cnt_pistas); // Enviar la lista de pistas a reproducir
+        break;
+
+    // reproduccion de lista temporizada
+    case 6:
+        LOG("\r\n\r\n\r\ncmdAudioBusy: true\r\n\r\n");
+        cmdAudioBusy = true; // Reiniciar el estado del comando de audio
+
+        cnt_pistas = numerosArrVoz[1]; // Contador de pistas
+
+        for (size_t i = 0; i < cnt_pistas; i++)
+            lista_pistas[i] = numerosArrVoz[i + 3]; // Guardar la pista en la lista
+
+        async_stop_mp3_cmd_flag = false; // bandera para indicar si se ha detenido el comando MP3 via cmd
+        async_init_mp3_cmd_flag = true;  // bandera para indicar si se ha inicializado el comando MP3 via cmd
+
+        async_reproduccion_timer_flag = true;                      // bandera para indicar si se reproduce una pista en bucle
+        async_reproduccion_timer_limite = numerosArrVoz[2] * 1000; // tiempo de reproduccion
+        async_reproduccion_timer_inicio = millis();                // tiempo de inicio de la reproduccion
+
+        async_cnf_mp3_play_lista(lista_pistas, cnt_pistas); // Enviar la lista de pistas a reproducir
+        break;
     }
 }
 
@@ -265,6 +276,8 @@ void rev_reproduccion_temporizada(void)
             estadoAlarma.onCmd = false; // Reiniciar el estado del comando de alarma
             LOG("\r\n\r\nReproduccion temporizada finalizada por comando de alarma.");
         }
+
+        Serial.println("\r\n\r\nReproduccion temporizada finalizada.");
 
         async_reproduccion_timer_flag = false; // bandera para indicar si se reproduce una pista en bucle
         async_play_1_pista_flag_bucle = false; // bandera para indicar si se reproduce una pista en bucle

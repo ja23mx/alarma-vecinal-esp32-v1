@@ -130,7 +130,7 @@ void async_mqtt_msg_ctrl_alarma(void)
 
         // Construir mensaje con nueva estructura
         msg_ctrl_alarma = "{\"dsp\":\"" + String(Data.numeroSerie) +
-                          "\",\"type\":\"ctrl-av-1\"" +
+                          "\",\"tipo\":\"ctrl-av-1\"" +
                           ",\"nm-ctrl\":" + String(estadoCompRFAv.control) +
                           ",\"btn-nm\":" + String(estadoCompRFAv.btnIndice + 1) +
                           ",\"btn-str\":\"" + String(estadoCompRFAv.btnStr) +
@@ -161,7 +161,7 @@ bool gestionar_conexion_wifi(void)
             {
                 mqtt_loop(); // Ejecutar el loop de MQTT
             } */
-            
+
             return true; // Retornar verdadero si la conexión es exitosa
         }
         else

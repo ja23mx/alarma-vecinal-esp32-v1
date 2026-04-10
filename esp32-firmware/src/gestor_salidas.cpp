@@ -22,7 +22,7 @@ SemaphoreHandle_t mutexGestionSalida = NULL;
 
 DATOS_INSTRUCCION cmdSalidaData;
 
-uint8_t pines_sal_arr[GST_SALIDA_NUM_PRF] = {SALIDA_1, SALIDA_2, 0, 0};
+uint8_t pines_sal_arr[GST_SALIDA_NUM_PRF] = {SALIDA_1, 0, 0, 0};
 uint8_t config_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0};
 
 unsigned long time_init_sal_arr[GST_SALIDA_NUM_PRF] = {0, 0, 0, 0};

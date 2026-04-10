@@ -291,7 +291,7 @@ bool GestorCMD::revisarCMD(const String &cmd, ComandoProcesadoInfo &info)
         case 6: // lista de pistas temporizada 6:[1]NUM_PISTAS:[2]TIME:[3]Pista1:[4]Pista2:...
 
             // por lo menos debe haber dos pistas
-            if (numSeparados.size() < 5)
+            if (numSeparados.size() < 4)
             {
                 setErrorInfo(info, cmd, ERROR_PARAMETROS_INVALIDOS, MSG_PARAMETROS_INVALIDOS);
                 return false;
@@ -541,32 +541,32 @@ void GestorCMD::generateHandShakeAckResponse(uint8_t status)
     generateAckResponse("hd-ack", status);
 }
 
-const char* GestorCMD::getErrorMessage(uint8_t errorCode)
+const char *GestorCMD::getErrorMessage(uint8_t errorCode)
 {
     switch (errorCode)
     {
-        case ERROR_NINGUNO: 
-            return MSG_COMANDO_VALIDO;
-        case ERROR_FORMATO_INVALIDO: 
-            return MSG_FORMATO_INVALIDO;
-        case ERROR_MODELO_NO_COINCIDE: 
-            return MSG_MODELO_NO_COINCIDE;
-        case ERROR_NUMERO_SERIE_NO_COINCIDE: 
-            return MSG_NUMERO_SERIE_NO_COINCIDE;
-        case ERROR_COMANDO_INVALIDO: 
-            return MSG_COMANDO_INVALIDO;
-        case ERROR_COMANDO_NO_ENCONTRADO: 
-            return MSG_COMANDO_NO_ENCONTRADO;
-        case ERROR_SALIDA_ERRONEA: 
-            return MSG_SALIDA_ERRONEA;
-        case ERROR_PARAMETROS_INVALIDOS: 
-            return MSG_PARAMETROS_INVALIDOS;
-        case WARNING_PERIFERICO_OCUPADO: 
-            return MSG_PERIFERICO_OCUPADO;
-        case ERROR_INTERNO: 
-            return MSG_ERROR_INTERNO;
-        default: 
-            return "Error desconocido";
+    case ERROR_NINGUNO:
+        return MSG_COMANDO_VALIDO;
+    case ERROR_FORMATO_INVALIDO:
+        return MSG_FORMATO_INVALIDO;
+    case ERROR_MODELO_NO_COINCIDE:
+        return MSG_MODELO_NO_COINCIDE;
+    case ERROR_NUMERO_SERIE_NO_COINCIDE:
+        return MSG_NUMERO_SERIE_NO_COINCIDE;
+    case ERROR_COMANDO_INVALIDO:
+        return MSG_COMANDO_INVALIDO;
+    case ERROR_COMANDO_NO_ENCONTRADO:
+        return MSG_COMANDO_NO_ENCONTRADO;
+    case ERROR_SALIDA_ERRONEA:
+        return MSG_SALIDA_ERRONEA;
+    case ERROR_PARAMETROS_INVALIDOS:
+        return MSG_PARAMETROS_INVALIDOS;
+    case WARNING_PERIFERICO_OCUPADO:
+        return MSG_PERIFERICO_OCUPADO;
+    case ERROR_INTERNO:
+        return MSG_ERROR_INTERNO;
+    default:
+        return "Error desconocido";
     }
 }
 
@@ -593,6 +593,6 @@ void GestorCMD::generateAckResponse(const String &responseType, uint8_t errorCod
         docJson["msg"] = getErrorMessage(ERROR_INTERNO);
         serializeJson(docJson, jsonBuffer, sizeof(jsonBuffer));
     }
-    
+
     LOG("\r\nACK Response generado (" + responseType + "): " + String(jsonBuffer));
 }

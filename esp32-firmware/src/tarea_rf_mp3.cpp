@@ -63,11 +63,10 @@ void tareaProcesos(void *pvParameters)
 
     LOG("\r\n\r\nTarea de procesos iniciada...");
 
-#ifdef VOZ_ENABLED
+#ifdef VOZ_ENABLE
     delay(3000);
-
     mp3_init();
-
+    proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
 #endif
 
     // ✅ Verificar inicialización
@@ -75,7 +74,7 @@ void tareaProcesos(void *pvParameters)
 
     while (true)
     {
-#ifdef VOZ_ENABLED
+#ifdef VOZ_ENABLE
         lectura_pto();
         mp3_loop();
 #endif
