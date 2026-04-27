@@ -102,8 +102,8 @@ void GestorCMD::processEmgCoDi(void)
         return;
     }
 
-    // Convertir a índice de vector (0-14)
-    int vectorIndex = emergenciaIndex - 1;
+    // Convertir a índice de vector
+    int vectorIndex = emergenciaIndex;
 
     // Verificar que el índice es válido
     if (vectorIndex < 0 || vectorIndex >= emgCoDi.size())
@@ -117,7 +117,7 @@ void GestorCMD::processEmgCoDi(void)
 
     // Obtener la cadena de comandos concatenados
     String comandosConcatenados = emgCoDi[vectorIndex];
-    LOG("\r\nComandos concatenados: " + comandosConcatenados);
+    LOG("\r\n\r\nComandos concatenados: " + comandosConcatenados + "\r\n");
 
     if (comandosConcatenados.length() == 0)
     {
@@ -146,14 +146,13 @@ void GestorCMD::processEmgCoDi(void)
         {
             // Comando de audio
             cmdAudio = comando;
-            cmdAudioPendiente = true;
             LOG("\r\nComando de audio asignado: " + cmdAudio);
         }
         else if (comando.startsWith("*SD*"))
         {
 
             cmdSalidas.push_back(comando);
-            LOG("\r\nComando digital válido agregado: " + comando);
+            LOG("\r\nComando digital valido agregado: " + comando);
         }
         else
         {
@@ -166,14 +165,19 @@ void GestorCMD::processEmgCoDi(void)
 
     // Indicar que hay comandos pendientes si se agregaron
     if (cmdSalidas.size() > 0)
+    {
         cmdSalidasPendiente = true;
+        delay(100); // Pequeña pausa para evitar problemas de sincronización
+    }
 
     if (cmdAudio != "")
+    {
         cmdAudioPendiente = true; // Indicar que hay un comando de audio pendiente
-    delay(100);                   // Pequeña pausa para evitar problemas de sincronización
+        delay(100);               // Pequeña pausa para evitar problemas de sincronización
+    }
 
     generateAckResponse("ack-emg-codi", ERROR_NINGUNO);
-    rspJson = true;
+    rspJson = true; // 3434
 
     LOG("\r\nprocessEmgCoDi completado. Audio pendiente: " + String(cmdAudioPendiente) +
         ", Salidas pendientes: " + String(cmdSalidasPendiente) +

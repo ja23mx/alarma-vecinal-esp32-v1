@@ -1,0 +1,141 @@
+NODO/E323A0/CMD
+
+*******************  COMANDOS  ********************************************************************
+
+*** ENCENDIDO
+    play lista de 10 y 101 por 30 segundos
+
+{
+  "dsp": "AV1-E323A0",
+  "tipo": "cmd",
+  "datos": [
+    "*SA*01*6:2:30:10:101##",
+    "*SD*01*3:2:30##"
+  ]
+}
+
+** ON AUDIO 30 segundos
+
+{
+  "dsp": "E323A0",
+  "tipo": "cmd",
+  "datos": [
+    "*SA*01*3:101:30##"
+  ]
+}
+
+
+{
+  "dsp": "AV1-E323A0",
+  "tipo": "cmd",
+  "datos": [
+    "*SA*01*6:2:30:10:101##",
+    "*SD*01*3:2:30##"
+  ]
+}
+
+*** ENCENDIDO
+    play pista 51, led fade nivel 2 dependiente 
+    de la reproduccion de pista 51
+
+{
+  "dsp": "AV1-E323A0",
+  "tipo": "cmd",
+  "datos": [
+    "*SA*01*1:51:0##",
+    "*SD*01*3:2:-1##"
+  ]
+}
+
+*** APAGADO
+{
+  "dsp": "AV1-E323A0",
+  "tipo": "cmd",
+  "datos": [
+    "*SA*01*0:0:0##",
+    "*SD*01*0:0:0##"
+  ]
+}
+
+
+ON 1 PISTA
+
+*SA*01*1:20:0##
+
+***************************************************************************************************
+
+*******************  SETTINGS  ********************************************************************
+
+{
+  "dsp": "AV1-E323A0",
+  "tipo": "settings",
+  "datos": [
+    "setTimer:23"
+  ]
+}
+
+***************************************************************************************************
+HANDSHAKE INIT SERVER-ESP32
+envio
+{
+  "dsp": "EA2C68",
+  "type": "hd-req",
+  "datos": {
+    "mdl": "MN-AV-V1.0",
+    "frm": "AV-RF-WF",
+    "vrs": "0.1",
+    "bld": "ALFA B025",
+    "tm": "Aug 10 2025 21:04:38"
+  }
+}
+respuesta
+{
+  "dsp": "AV1-EA2C68",
+  "tipo": "hd-res",
+  "status": "OK",
+  "params": {
+    "emgs": {
+      "emg1": "*SA*01*6:2:30:10:101##*SD*01*3:2:30##",
+      "emg2": "*SA*01*1:51:0##*SD*01*3:2:-1##"
+    }
+  }
+}
+
+ACK RESPUESTA A MQTT
+
+{
+  "dsp": "AV1-EA2C68",
+  "tipo": "hd-res",  
+  "status": "OK",  
+  "params": { 
+    "emgs": {         
+      "emg1": "*SA*01*6:2:30:10:101##*SD*01*3:2:30##",
+      "emg2": "*SA*01*1:51:0##*SD*01*3:2:-1##"
+    }
+  }
+}
+
+**********************
+ENVIO DE CONTROL ESP32-SERVER
+
+{
+  "dsp": "EA2C68",
+  "type": "ctrl-av-1",
+  "nm-ctrl":23,
+  "btn-nm":2,
+  "btn-str": "B",
+  "tm": "2025-08-31T21:42:00-0600",
+  "ntp_status": "success"
+}
+
+************************
+HEARBEAT
+
+{
+  "dsp": "EA2C68",
+  "tipo": "hb",
+  "tm": "2025-09-17T12:07:27-0600",
+  "ntp_status": "success"
+}
+
+************************

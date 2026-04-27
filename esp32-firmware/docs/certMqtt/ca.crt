@@ -1,6 +1,3 @@
-// certificado mqtt para conexao segura
-// valido hasta el 29 de octubre de 2035
-const char mqtt_crt[] PROGMEM = R"rawliteral(
 -----BEGIN CERTIFICATE-----
 MIIDrzCCApegAwIBAgIUBAKzwUghMy0YpikDg8blHEvvt/UwDQYJKoZIhvcNAQEL
 BQAwZzELMAkGA1UEBhMCRVMxDjAMBgNVBAgMBVN0YXRlMQ0wCwYDVQQHDARDaXR5
@@ -23,4 +20,3 @@ Ok5AhtwZPg0ZNI/Z7s0ZYr2RQx5zvN7iFisafvy42iI8RVpMVOQJoYwBnk5jSjQ4
 BRtcRK0DFY5MhAesV8ZgZMo23GjQkjpq/ilzObskfdvper1lqlfgyj9Aa1St1qTy
 ygNjWMcbrTYcVrcW5uJv1mpb//O3KdCe69GonintdX7W1ek=
 -----END CERTIFICATE-----
-)rawliteral";

@@ -6,11 +6,7 @@
 // ==============================================================================================
 // SELECCIÓN DE VERSIÓN DE TARJETA - DESCOMENTA SOLO UNA OPCIÓN
 // ==============================================================================================
-// #define TARJETA_DDI // Tarjeta DDI
-// #define TARJETA_MENIAM   // Tarjeta MENIAM
-// #define TARJETA_NEGRA // Tarjeta NEGRA (default)
-// #define TARJETA_MN_2_0 // Tarjeta MN 2.0
-#define TARJETA_SL_DG // Tarjeta Salidas Digitales
+#define TARJETA_SLT_V1 // Tarjeta NEGRA (default)
 
 // ==============================================================================================
 // PINES COMUNES A TODAS LAS TARJETAS
@@ -25,77 +21,16 @@
 // CONFIGURACIÓN ESPECÍFICA POR TARJETA
 // ==============================================================================================
 
-#ifdef TARJETA_DDI
+#ifdef TARJETA_SLT_V1
 // TARJETA DDI
 #define SALIDA_1 33        // Pin de salida 1
-#define AMPLIFICADOR 32    // Pin de control del amplificador
-#define PIN_MP3_UART_RX 16 // Pin de recepción del UART1
-#define PIN_MP3_UART_TX 17 // Pin de transmisión del UART1
-#define PIN_MP3_BUSY 27    // Pin de busy del MP3
-#define LED_MP3 35         // Pin del LED del MP3
-#define PIN_NEOPIXEL 25    // Pin de Neopixel
-#define TARJETA_VERSION "DDI"
-
-#elif defined(TARJETA_MENIAM)
-// TARJETA MENIAM
-#define SALIDA_1 33        // Pin de salida 1
 #define AMPLIFICADOR 12    // Pin de control del amplificador
 #define PIN_MP3_UART_RX 16 // Pin de recepción del UART1
 #define PIN_MP3_UART_TX 17 // Pin de transmisión del UART1
-#define PIN_MP3_BUSY 26    // Pin de busy del MP3
+#define PIN_MP3_BUSY 35    // Pin de busy del MP3
 #define LED_MP3 32         // Pin del LED del MP3
-#define PIN_NEOPIXEL 25    // Pin de Neopixel
-#define TARJETA_VERSION "MENIAM"
-
-#elif defined(TARJETA_NEGRA)
-// TARJETA NEGRA (configuración por defecto)
-#define SALIDA_1 33        // Pin de salida 1
-#define AMPLIFICADOR 27    // Pin de control del amplificador
-#define PIN_MP3_UART_RX 12 // Pin de recepción del UART1
-#define PIN_MP3_UART_TX 14 // Pin de transmisión del UART1
-#define PIN_MP3_BUSY 26    // Pin de busy del MP3
-#define LED_MP3 32         // Pin del LED del MP3
-#define PIN_NEOPIXEL 19    // Pin de Neopixel
-#define TARJETA_VERSION "NEGRA"
-
-#elif defined(TARJETA_MN_2_0)
-// TARJETA MN 2.0
-#define SALIDA_1 25 // Pin de salida 1
-
-#define PIN_NEOPIXEL 19 // Pin de Neopixel
-
-#define VOZ_ENABLED        // Habilitar funcionalidad de voz
-#define AMPLIFICADOR 12    // Pin de control del amplificador
-#define PIN_MP3_UART_RX 16 // Pin de recepción del UART1
-#define PIN_MP3_UART_TX 17 // Pin de transmisión del UART1
-#define PIN_MP3_BUSY 33    // Pin de busy del MP3
-#define LED_MP3 32         // Pin del LED del MP3
-
-#define TARJETA_VERSION "MN_2_0"
-
-// LoRa RFM95 (comunes a todas las tarjetas)
-#define PIN_LORA_MISO 19 // Pin MISO del LoRa
-#define PIN_LORA_MOSI 23 // Pin MOSI del LoRa
-#define PIN_LORA_SCK 18  // Pin SCK del LoRa
-#define PIN_LORA_NSS 5   // Pin CS del LoRa
-#define PIN_LORA_RST 13  // Pin de reset del LoRa
-#define PIN_LORA_DIO0 26 // Pin DIO0 del LoRa
-
-#elif defined(TARJETA_SL_DG)
-// TARJETA SL DG
-#define SALIDA_1 16 // Pin de salida 1
-#define SALIDA_2 17 // Pin de salida 2
-
-#define PIN_NEOPIXEL 19 // Pin de Neopixel
-
-#define AMPLIFICADOR 27    // Pin de control del amplificador
-#define PIN_MP3_UART_RX 12 // Pin de recepción del UART1
-#define PIN_MP3_UART_TX 14 // Pin de transmisión del UART1
-#define PIN_MP3_BUSY 26    // Pin de busy del MP3
-#define LED_MP3 32         // Pin del LED del MP3
-
-#define TARJETA_VERSION "SL_DG"
-
+#define PIN_NEOPIXEL 14    // Pin de Neopixel
+#define TARJETA_VERSION "TARJETA_SLT_V1"
 #else
 // Si no se define ninguna tarjeta, usar TARJETA_NEGRA por defecto
 #warning "No se ha seleccionado ninguna versión de tarjeta. Usando TARJETA_NEGRA por defecto."
@@ -134,6 +69,7 @@
 #define AL_PLAY_1_PISTA 5
 
 // Mp3
+#define VOZ_ENABLE
 #define CONST_MP3_REPRODUCIENDO false
 #define CONST_MP3_ESP_REP_MP3 2500
 #define CONST_MP3_LIM_T_PISTA 60000
@@ -182,11 +118,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define TOPIC_SUS_1 "NODO/" // Topico de suscripción MQTT
-#define TOPIC_SUS_2 "/CMD"
-#define TOPIC_SUS_3 "/ACK"
+#define TOPIC_SUS_2 "/CMD/"
+#define TOPIC_SUS_3 "/ACK/"
 
-#define TOPIC_PUB "CONTROLADOR/HB"        // Topico de publicación MQTT de heartbeat
-#define TOPIC_STATUS "CONTROLADOR/STATUS" // Topico de publicación MQTT de heartbeat
+#define TOPIC_PUB "CONTROLADOR/HB/"        // Topico de publicación MQTT de heartbeat
+#define TOPIC_STATUS "CONTROLADOR/STATUS/" // Topico de publicación MQTT de heartbeat
 
 #define MQTT_CNF_TM_HB_SG 60             // Tiempo de espera en segungos para el heartbeat MQTT
 #define MQTT_CNF_TM_REV_LOOP_MS 500      // Tiempo de espera en milisegundos para el bucle MQTT

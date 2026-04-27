@@ -32,6 +32,9 @@ bool conexion_wifi = false;    // Variable para verificar la conexión WiFi
 unsigned long tiempo_wifi = 0; // Variable para almacenar el tiempo de la alarma
 unsigned long tiempo_mqtt = 0; // Variable para almacenar el tiempo de la conexión MQTT
 
+// Nueva bandera para controlar el LED desde manejarBotonProg
+bool led_control_boton_activo = false;
+
 #include <voz_esp.h>
 
 void setup()
@@ -142,32 +145,12 @@ void loop()
     }
   }
 
-  /* if (digitalRead(BTN_PROG) == LOW)
-  {
-    delay(250);
-
-    if (digitalRead(BTN_PROG) == LOW)
-    {
-      init_prog_ble = true;
-      // cambiar_estado_tarea_alarma(0);    // Pausar la tarea de alarma
-      // cambiar_estado_procesos_alarma(0); // Pausar la tarea de procesos
-      LOG("\r\nINIT PROGRAMACION..."); // init_red_ble();                  // Inicializar la red BLE
-      // Inicializa el servidor web y la red wifi, si no se conecta a la red wifi, inicia el AP
-      serverWeb.begin();
-    }
-  } */
-
   manejarBotonProg(); // Manejar el botón de programación
 
   if (Serial.available())
   {
     String cmd = Serial.readString();
     LOG("\r\nComando recibido: " + cmd);
-
-    /* if (cmd == "a")
-      async_led_mp3_on(); // Encender el LED del MP3
-    else if (cmd == "s")
-      async_led_mp3_off(); // Apagar el LED del MP3 */
 
     if (cmd == "rst")
     {
@@ -184,6 +167,12 @@ void loop()
 
 void blink_led_mqtt(bool revision)
 {
+  // Si el control del LED está siendo manejado por manejarBotonProg, no hacer nada
+  if (led_control_boton_activo)
+  {
+    return;
+  }
+
   static bool en_blink = true;               // Variable para almacenar el estado del LED
   static unsigned long tiempo_en_fncion = 0; // Variable para almacenar el tiempo de la función
   static bool led_status = false;            // Variable para almacenar el estado del LED
@@ -247,10 +236,11 @@ void manejarBotonProg()
   static bool funcionLlamada5s = false;
   static bool esperandoConfirmacion = false;
   static unsigned long tiempoEsperaConfirmacion = 0;
-  static bool funcionLlamada13s = false;
+  static bool funcionLlamada20s = false;
   static bool parpadeoIniciado = false;
   static unsigned long tiempoParpadeo = 0;
   static bool estadoLedParpadeo = false;
+  static bool ventanaDecisionActiva = false;
 
   uint8_t origen_fin_prog;
 
@@ -265,14 +255,24 @@ void manejarBotonProg()
 
   if (estadoBoton == HIGH) // boton no presionado
   {
+    // Si se suelta el botón durante la ventana de decisión (5s-7s), iniciar programación web
+    if (ventanaDecisionActiva && botonPresionado)
+    {
+      LOG("\r\n\r\nIniciando programación web...");
+      origen_fin_prog = serverWeb.begin(1); // Inicia programación via boton de programación
+      gestion_fin_ap(origen_fin_prog);      // Manejar el fin del modo AP
+    }
+
     // Reiniciar todo si se suelta el botón
     if (botonPresionado)
     {
       botonPresionado = false;
       funcionLlamada5s = false;
       esperandoConfirmacion = false;
-      funcionLlamada13s = false;
+      funcionLlamada20s = false;
       parpadeoIniciado = false;
+      ventanaDecisionActiva = false;
+      led_control_boton_activo = false; // Devolver control del LED a blink_led_mqtt
       digitalWrite(LED_STATUS, LOW);
       LOG("Botón soltado - Timer reiniciado");
     }
@@ -285,8 +285,9 @@ void manejarBotonProg()
     botonPresionado = true;
     funcionLlamada5s = false;
     esperandoConfirmacion = false;
-    funcionLlamada13s = false;
+    funcionLlamada20s = false;
     parpadeoIniciado = false;
+    ventanaDecisionActiva = false;
     tiempoInicioPresion = millis();
   }
 
@@ -295,36 +296,33 @@ void manejarBotonProg()
   {
     unsigned long tiempoPresion = millis() - tiempoInicioPresion;
 
-    // Función a los 5 segundos
+    // Activar ventana de decisión a los 5 segundos
     if (tiempoPresion >= 5000 && !funcionLlamada5s)
     {
       funcionLlamada5s = true;
-      esperandoConfirmacion = true;
-      tiempoEsperaConfirmacion = millis();
-      LOG("\r\n\r\nIniciando programación..."); // Mensaje de inicio de programación
-      origen_fin_prog = serverWeb.begin(1);     // Inicia programación via boton de programación
-      gestion_fin_ap(origen_fin_prog);          // Manejar el fin del modo AP
+      ventanaDecisionActiva = true;
+      led_control_boton_activo = true; // Tomar control del LED
+      digitalWrite(LED_STATUS, HIGH);  // LED fijo para indicar ventana de decisión
+      LOG("\r\n\r\nVentana de decisión: suelte para programación web, mantenga para reset de datos...");
     }
 
-    // Esperar confirmación después de los 5 segundos (500ms de espera)
-    if (esperandoConfirmacion)
+    // Cancelar ventana de decisión a los 7 segundos si sigue presionado
+    if (tiempoPresion >= 7000 && ventanaDecisionActiva)
     {
-      if (millis() - tiempoEsperaConfirmacion >= 500)
-      {
-        esperandoConfirmacion = false;
-        LOG("Confirmación: continuando hacia reset de datos...");
-      }
+      ventanaDecisionActiva = false;
+      digitalWrite(LED_STATUS, LOW);
+      LOG("Ventana de decisión cerrada - continuando hacia reset de datos...");
     }
 
     // Parpadeo rápido antes de los 13 segundos (a partir de los 11 segundos)
-    if (tiempoPresion >= 11000 && !parpadeoIniciado && !esperandoConfirmacion)
+    if (tiempoPresion >= 11000 && !parpadeoIniciado && !ventanaDecisionActiva)
     {
       parpadeoIniciado = true;
       tiempoParpadeo = millis();
     }
 
     // Controlar parpadeo del LED (300ms de período)
-    if (parpadeoIniciado && !funcionLlamada13s)
+    if (parpadeoIniciado && !funcionLlamada20s)
     {
       if (millis() - tiempoParpadeo >= 150)
       { // 150ms ON, 150ms OFF = 300ms período
@@ -334,13 +332,14 @@ void manejarBotonProg()
       }
     }
 
-    // Función a los 13 segundos (solo si no está esperando confirmación)
-    if (tiempoPresion >= 13000 && !funcionLlamada13s && !esperandoConfirmacion)
+    // Función a los 20 segundos (solo si no está en ventana de decisión)
+    if (tiempoPresion >= 20000 && !funcionLlamada20s && !ventanaDecisionActiva)
     {
-      funcionLlamada13s = true;
+      funcionLlamada20s = true;
       digitalWrite(LED_STATUS, LOW); // Apagar LED después del parpadeo
       LOG("\r\n\r\nReiniciando datos...");
       Data.rstData(); // Ejecutar reset de datos
+      ESP.restart();  // Reiniciar el ESP para aplicar los cambios
     }
   }
 }

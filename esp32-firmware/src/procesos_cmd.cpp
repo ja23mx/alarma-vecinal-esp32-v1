@@ -12,16 +12,21 @@
 #include "gestor_salidas.h"
 #include "GestorCmd.h"
 
-bool pendienteAsyncEvCtrl = false; // Variable para verificar si hay un evento de control pendiente
-uint8_t varAsyncEvTipoCtrl;        // Variable para almacenar el tipo de control pendiente
-bool pendienteSyncEvMqtt = false;  // Variable para verificar si hay un evento MQTT pendiente
+// Mutex para proteger variables compartidas
+SemaphoreHandle_t mutexEventosCtrl = NULL;
+SemaphoreHandle_t mutexEventosMqtt = NULL;
+SemaphoreHandle_t mutexPistaLed = NULL;
 
-bool pendienteAsyncPistaLedAtm = false; // Variable para verificar si hay una pista LED ATM pendiente
-uint16_t varAsyncPistaLedAtm = 0;       // Variable para almacenar la pista LED ATM pendiente
-uint16_t varAsyncPistaLedAtmConfig = 0; // Variable para almacenar la configuración de la pista LED ATM
-uint16_t varAsyncPistaLedAtmCarga = 0;  // Variable para almacenar la carga de la pista LED ATM
+bool pendienteAsyncEvCtrl = false;
+uint8_t varAsyncEvTipoCtrl;
+bool pendienteSyncEvMqtt = false;
 
-TaskHandle_t tareaProcesosCmdHandle = NULL; // Handle para la tarea de procesos
+bool pendienteAsyncPistaLedAtm = false;
+uint16_t varAsyncPistaLedAtm = 0;
+uint16_t varAsyncPistaLedAtmConfig = 0;
+uint16_t varAsyncPistaLedAtmCarga = 0;
+
+TaskHandle_t tareaProcesosCmdHandle = NULL;
 
 // Función para crear la tarea de alarma
 void crearTareaProcesosCmd(void)
@@ -29,11 +34,22 @@ void crearTareaProcesosCmd(void)
 
     LOG("\r\n\r\nCreando tarea de alarma...");
 
+    // Crear mutex antes de la tarea
+    mutexEventosCtrl = xSemaphoreCreateMutex();
+    mutexEventosMqtt = xSemaphoreCreateMutex();
+    mutexPistaLed = xSemaphoreCreateMutex();
+
+    if (mutexEventosCtrl == NULL || mutexEventosMqtt == NULL || mutexPistaLed == NULL)
+    {
+        LOG("\r\n ERROR: No se pudieron crear los mutex");
+        return;
+    }
+
     // Crear la tarea
     xTaskCreate(
         tareaProcesosCmd,       // Función de la tarea
         "TareaAlarma",          // Nombre de la tarea
-        2048,                   // Tamaño del stack en palabras
+        8192,                   // Aumentado a 8192 para mayor seguridad
         NULL,                   // Parámetros de entrada
         2,                      // Prioridad de la tarea
         &tareaProcesosCmdHandle // Guardar el handle de la tarea
@@ -82,59 +98,92 @@ void call_async_eventos(void)
 
 void rev_async_evento_ctrl_av(void)
 {
+    bool hayEvento = false;
+    uint8_t tipoCtrl = 0;
 
-    if (!pendienteAsyncEvCtrl) // Si no hay pendiente de evento de control, salir
-        return;                // Salir de la función
+    // Bloquear mutex para acceder a variables compartidas
+    if (xSemaphoreTake(mutexEventosCtrl, portMAX_DELAY) == pdTRUE)
+    {
+        if (pendienteAsyncEvCtrl)
+        {
+            hayEvento = true;
+            tipoCtrl = varAsyncEvTipoCtrl;
+            pendienteAsyncEvCtrl = false;
+        }
+        xSemaphoreGive(mutexEventosCtrl);
+    }
 
-    pendienteAsyncEvCtrl = false; // Reiniciar la variable de pendiente de evento de control
+    if (!hayEvento)
+        return;
 
     LOG("\r\n\r\nrev_async_evento_ctrl_av.");
-    LOG("\r\nTipo de control: " + String(varAsyncEvTipoCtrl));
-    GestorCmd.CtrlAv(varAsyncEvTipoCtrl); // Procesar el evento de control AV, obtiene los CODI (comandos digitales) de salida y audio
-    call_async_eventos();                 // Llamar a la función para gestionar el MP3 y las salidas
+    LOG("\r\nTipo de control: " + String(tipoCtrl));
+
+    GestorCmd.CtrlAv(tipoCtrl);
+    call_async_eventos();
 }
 
 void async_evento_ctrl_av(uint8_t tipoCtrl)
 {
-    if (tipoCtrl == 0) // Si el tipo de control es 0, no hacer nada
-        return;        // Salir de la función
+    if (tipoCtrl == 0)
+        return;
 
-    switch (tipoCtrl)
+    if (mutexEventosCtrl == NULL)
+        return;
+
+    // Proteger acceso con mutex
+    if (xSemaphoreTake(mutexEventosCtrl, pdMS_TO_TICKS(100)) == pdTRUE)
     {
-    case AL_CTRL_TP_AV:                // Control AV
-        varAsyncEvTipoCtrl = tipoCtrl; // Almacenar el tipo de control pendiente
-        pendienteAsyncEvCtrl = true;   // Marcar como pendiente el evento de control
-        break;
-    case AL_CTRL_TP_GUARDIAN:          // Control Guardian
-        varAsyncEvTipoCtrl = tipoCtrl; // Almacenar el tipo de control pendiente
-        pendienteAsyncEvCtrl = true;   // Marcar como pendiente el evento de control
-        break;
-    case AL_CTRL_TP_INTEGRADOR:        // Control Integrador
-        varAsyncEvTipoCtrl = tipoCtrl; // Almacenar el tipo de control pendiente
-        pendienteAsyncEvCtrl = true;   // Marcar como pendiente el evento de control
-        break;
+        switch (tipoCtrl)
+        {
+        case AL_CTRL_TP_AV:
+        case AL_CTRL_TP_GUARDIAN:
+        case AL_CTRL_TP_INTEGRADOR:
+            varAsyncEvTipoCtrl = tipoCtrl;
+            pendienteAsyncEvCtrl = true;
+            break;
+        }
+        xSemaphoreGive(mutexEventosCtrl);
     }
 
-    delay(100); // Esperar un poco para evitar problemas de sincronización
+    delay(10); // Reducido de 100 a 10
 }
 
 void rev_sync_evento_mqtt(void)
 {
-    if (!pendienteSyncEvMqtt) // Si no hay pendiente de evento MQTT, salir
-        return;               // Salir de la función
+    bool hayEvento = false;
 
-    pendienteSyncEvMqtt = false; // Reiniciar la variable de pendiente de evento MQTT
+    if (xSemaphoreTake(mutexEventosMqtt, portMAX_DELAY) == pdTRUE)
+    {
+        if (pendienteSyncEvMqtt)
+        {
+            hayEvento = true;
+            pendienteSyncEvMqtt = false;
+        }
+        xSemaphoreGive(mutexEventosMqtt);
+    }
 
-    LOG("\r\n\r\nrev_sync_evento_mqtt."); //
-    call_async_eventos();                 // Llamar a la función para gestionar el MP3 y las salidas
+    if (!hayEvento)
+        return;
+
+    LOG("\r\n\r\nrev_sync_evento_mqtt.");
+    call_async_eventos();
 }
 
 void sync_evento_mqtt(String payload)
 {
+    if (mutexEventosMqtt == NULL)
+        return;
 
-    GestorCmd.process(payload, CmdOrigen::SRV_EXT); // Procesar el payload recibido
-    pendienteSyncEvMqtt = true;                     // Marcar como pendiente el evento MQTT
-    delay(100);                                     // Esperar un poco para evitar problemas de sincronización
+    GestorCmd.process(payload, CmdOrigen::SRV_EXT);
+
+    if (xSemaphoreTake(mutexEventosMqtt, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        pendienteSyncEvMqtt = true;
+        xSemaphoreGive(mutexEventosMqtt);
+    }
+
+    delay(10); // Reducido de 100 a 10
 }
 
 void proc_cmd_play_pista_msg(uint8_t pista)
@@ -155,36 +204,55 @@ void proc_cmd_play_pista_msg(uint8_t pista)
 */
 void async_play_pista_led_atm(uint8_t pista, uint8_t config, uint8_t cargaPeriferico)
 {
-    if (cargaPeriferico == 0)                   // Si no se debe cargar el periférico, no hacer nada
-        return;                                 // Salir de la función
-    if (config == 0)                            // Si la configuración es 0, no hacer nada
-        return;                                 // Salir de la función
-    if (pista == 0 || pista > 1000)             // Si la pista es 0 o mayor a 1000, no hacer nada
-        return;                                 // Salir de la función
-                                                //
-    varAsyncPistaLedAtm = pista;                // Almacenar la pista LED ATM pendiente
-    varAsyncPistaLedAtmConfig = config;         // Almacenar la configuración de la pista LED ATM
-    varAsyncPistaLedAtmCarga = cargaPeriferico; // Almacenar la carga de la pista LED ATM
-    pendienteAsyncPistaLedAtm = true;           // Marcar como pendiente el evento de pista LED ATM
-    delay(100);                                 // Esperar un poco para evitar problemas de sincronización
+    if (cargaPeriferico == 0 || config == 0 || pista == 0 || pista > 1000)
+        return;
+
+    if (mutexPistaLed == NULL)
+        return;
+
+    if (xSemaphoreTake(mutexPistaLed, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        varAsyncPistaLedAtm = pista;
+        varAsyncPistaLedAtmConfig = config;
+        varAsyncPistaLedAtmCarga = cargaPeriferico;
+        pendienteAsyncPistaLedAtm = true;
+        xSemaphoreGive(mutexPistaLed);
+    }
+
+    delay(10); // Reducido de 100 a 10
 }
 
 void rev_async_pista_led_atm(void)
 {
-    if (!pendienteAsyncPistaLedAtm) // Si no hay pendiente de pista LED ATM, salir
-        return;                     // Salir de la función
+    bool hayEvento = false;
+    uint16_t pista = 0;
+    uint16_t config = 0;
+    uint16_t carga = 0;
 
-    pendienteAsyncPistaLedAtm = false; // Reiniciar la variable de pendiente de pista LED ATM
+    if (xSemaphoreTake(mutexPistaLed, portMAX_DELAY) == pdTRUE)
+    {
+        if (pendienteAsyncPistaLedAtm)
+        {
+            hayEvento = true;
+            pista = varAsyncPistaLedAtm;
+            config = varAsyncPistaLedAtmConfig;
+            carga = varAsyncPistaLedAtmCarga;
+            pendienteAsyncPistaLedAtm = false;
+        }
+        xSemaphoreGive(mutexPistaLed);
+    }
+
+    if (!hayEvento)
+        return;
 
     LOG("\r\n\r\nrev_async_pista_led_atm.");
-    LOG("\r\nPista LED ATM: " + String(varAsyncPistaLedAtm));
-    LOG("\r\nConfiguración Pista LED ATM: " + String(varAsyncPistaLedAtmConfig));
-    LOG("\r\nCarga Pista LED ATM: " + String(varAsyncPistaLedAtmCarga));
-    GestorCmd.playPistaLedAtm(varAsyncPistaLedAtm, varAsyncPistaLedAtmConfig, varAsyncPistaLedAtmCarga); // Procesar la pista LED ATM pendiente
-    call_async_eventos();                                                                                // Llamar a la función para gestionar el MP3 y las salidas
+    LOG("\r\nPista LED ATM: " + String(pista));
+    LOG("\r\nConfiguración Pista LED ATM: " + String(config));
+    LOG("\r\nCarga Pista LED ATM: " + String(carga));
+
+    GestorCmd.playPistaLedAtm(pista, config, carga);
+    call_async_eventos();
 }
-
-
 
 /*
     @brief: Método para procesar la pista y encendido del LED de forma sincronizada. No puede ser llamado desde la tarea de RF y Voz
@@ -208,7 +276,7 @@ void sync_proc_cmd_play_pista_led_atm(uint8_t pista, uint8_t config, uint8_t car
 
     uint32_t timerInitRst = millis(); // almacenar el tiempo actual
 
-    while ( millis() - timerInitRst < 50000) // limite de tiempo de espera de 50 segundos
+    while (millis() - timerInitRst < 50000) // limite de tiempo de espera de 50 segundos
     {
         if (!cmdAudioBusy)
         {
