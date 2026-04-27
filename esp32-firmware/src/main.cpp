@@ -55,6 +55,7 @@ void setup()
   pinMode(LED_STATUS, OUTPUT);
   pinMode(AMPLIFICADOR, OUTPUT);
   pinMode(SALIDA_1, OUTPUT);
+  pinMode(PIN_CNF_RED_ADC, INPUT);
 
 #if defined(SALIDA_2)
   pinMode(SALIDA_2, OUTPUT);
@@ -80,6 +81,7 @@ void setup()
   crearTareaProcesos();      // Crear la tarea de procesos
   crearTareaProcesosCmd();   // Crear la tarea de procesos de comandos
   crearTareaGestionSalida(); // Crear la tarea de gestión de salidas
+  get_config_red();          // Leer la configuración de red en pic ADC (WiFi o Ethernet)
 
   if (PROG_LOCAL)
     //  Inicializa el servidor web y la red wifi, si no se conecta
@@ -342,4 +344,51 @@ void manejarBotonProg()
       ESP.restart();  // Reiniciar el ESP para aplicar los cambios
     }
   }
+}
+
+int leerSwitchConAntirrebote(int pinADC, int numLecturas, int retardoMs)
+{
+  long suma = 0;
+  int lecturaActual;
+  int tolerancia = 100;
+
+  // Realiza 'numLecturas' lecturas para filtrar ruido y rebotes
+  for (int i = 0; i < numLecturas; i++)
+  {
+    lecturaActual = analogRead(pinADC);
+    suma += lecturaActual;
+    delay(retardoMs); // Pequeña pausa entre lecturas
+  }
+
+  // Calcula el promedio
+  int promedio = suma / numLecturas;
+
+  // Serial.print("\r\n\r\npromedio: " + String(promedio));
+
+  // Verifica en qué rango está la lectura con tolerancia
+  if (abs(promedio - 4095) <= tolerancia)
+  {
+    return 0;
+  }
+  else if (abs(promedio - 1984) <= tolerancia)
+  {
+    return 1;
+  }
+  else if (abs(promedio - 968) <= tolerancia)
+  {
+    return 2;
+  }
+
+  // Si no está en ningún rango válido, retorna -1 (error o estado inválido)
+  return -1;
+}
+
+void get_config_red(void)
+{
+  config_red = leerSwitchConAntirrebote(PIN_CNF_RED_ADC, 15, 50); // lectura de configuracion de red
+
+  if (config_red == 0 || config_red == -1) // por defecto es 1 (ethernet) en caso de que no sea lectura correcta
+    config_red = 1;
+
+  Serial.print("\r\n\r\nCONFIG RED= " + String(config_red));
 }

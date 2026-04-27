@@ -15,7 +15,8 @@
 
 #include "wifi_mqtt_esp.h"
 #include "VariablesGlobales.h"
-#include "mqtt_cert.h"
+/* #include "mqtt_cert_jlinfra_wifi.h"
+#include "mqtt_cert_jlinfra_ethernet.h" */
 #include "procesos_cmd.h"
 #include "gestor_salidas.h"
 #include "GestorCmd.h"

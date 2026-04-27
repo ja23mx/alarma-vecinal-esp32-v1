@@ -11,17 +11,19 @@ bool init_prog_rf = false;     // Variable global para inicializar la programaci
                                //
 ESCANEO_STATUS escaneoWiFi;    // Estructura global para el escaneo de WiFi
 
+int16_t config_red; // Variable global para la configuración de la red, 1=ethernet, 2=wifi. por defecto 1.
+
 ///// MQTT VARIABLES //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-const char *mqtt_server = "meniam.virtualizate.com"; // Cambia por tu broker
-uint16_t mqtt_port = 8883;                           // Puerto seguro MQTT
-const char *mqtt_user = "mqttuser";                  // Usuario MQTT
-const char *mqtt_pass = ".123qweasdzxc";             // Contraseña MQTT
+const char *mqtt_server = "mqtt.av.jlinfra.online"; // Cambia por tu broker
+uint16_t mqtt_port = 8883;                          // Puerto seguro MQTT
+const char *mqtt_user = "mqtt_user";                // Usuario MQTT
+const char *mqtt_pass = "5457kzs07";                // Contraseña MQTT
 
 std::vector<String> cmdLocal;
 std::vector<String> cmdExterno;
-std::vector<String> cmdSalidas; 
-String cmdAudio; 
+std::vector<String> cmdSalidas;
+String cmdAudio;
 bool cmdSalidasPendiente, cmdSalidasBusy;
 bool cmdAudioPendiente, cmdAudioBusy;
 

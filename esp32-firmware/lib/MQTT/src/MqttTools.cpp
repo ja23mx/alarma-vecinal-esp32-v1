@@ -1,3 +1,5 @@
+#include <SSLClient.h>
+
 #include "MqttTools.h"
 
 #include "ConfigSistema.h"
@@ -6,7 +8,8 @@
 #include "EstructurasGlobales.h"
 #include "TimeManager.h"
 
-#include "mqtt_cert.h"
+#include "mqtt_cert_jlinfra_wifi.h"
+#include "mqtt_cert_jlinfra_ethernet.h"
 #include "VariablesGlobales.h"
 
 bool MqttTools::dato_mqtt_callback = false;
@@ -42,7 +45,7 @@ bool MqttTools::init()
     LOG("\r\ntopic_pub_ack: " + topic_pub_ack);
     LOG("\r\nid_cliente: " + id_cliente);
 
-    espClient.setCACert(mqtt_crt);
+    espClient.setCACert(mqtt_crt_wifi);
     client.setCallback(mqtt_callback);
 
     return mqtt_suscripcion();

@@ -15,12 +15,14 @@ extern ESCANEO_STATUS escaneoWiFi;    // Estructura global para el escaneo de Wi
 */
 extern bool init_prog_ble;
 
-/* 
+/*
     @brief inicio programacion via RF
     @param 0 = deshabilitada, 1 = habilitada
     @note Variable global que se utiliza para indicar que inicio programacion via RF, usada en el loop principal
 */
-extern bool init_prog_rf; 
+extern bool init_prog_rf;
+
+extern int16_t config_red; // Variable global para la configuración de la red, 1=ethernet, 2=wifi. por defecto 1.
 
 ///// MQTT VARIABLES //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////

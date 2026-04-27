@@ -130,7 +130,7 @@ void DataManager::rstData(void)
     setNumSerie(macSuffix);    // Usar el sufijo de la MAC como número de serie
     setClaveDispositivo(1234); // Clave de dispositivo
     setPerifericos(1, 1);      //    1 -> rf
-    setPerifericos(2, 0);      //    2 -> wifi
+    setPerifericos(2, 1);      //    2 -> wifi
     setPerifericos(3, 1);      //    3 -> voz
     setPerifericos(4, 0);      //    4 -> perifoneo
     setTimerAlarma(30);        // 30 segundos timer alarma
@@ -149,7 +149,7 @@ void DataManager::rstData(void)
     }
     else
     {
-        guardarRedWiFi("REDALERTA", "@TLWN_7200NDMX2148"); // Guardar red WiFi de ejemplo
+        guardarRedWiFi("REDLOCAL", "TLWN7200NDMX2148"); // Guardar red WiFi de ejemplo
     }
 
     rstDataCnfCtrl(); // Restablecer datos de configuración de controles

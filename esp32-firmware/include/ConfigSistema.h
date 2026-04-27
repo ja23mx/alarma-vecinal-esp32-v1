@@ -30,6 +30,7 @@
 #define PIN_MP3_BUSY 35    // Pin de busy del MP3
 #define LED_MP3 32         // Pin del LED del MP3
 #define PIN_NEOPIXEL 14    // Pin de Neopixel
+#define PIN_CNF_RED_ADC 39 // Pin de configuración de red
 #define TARJETA_VERSION "TARJETA_SLT_V1"
 #else
 // Si no se define ninguna tarjeta, usar TARJETA_NEGRA por defecto
