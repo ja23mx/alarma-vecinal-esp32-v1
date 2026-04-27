@@ -58,6 +58,8 @@ bool mqtt_loop()
 
 void envio_msg_init_broker(void)
 {
+    // funcion deshabilitada para liberacion de beta, posible reincorporacion en version futura.
+    return;
     if (!mqttManager.conectado) // Si no está conectado a MQTT, salir
         return;
 

@@ -45,10 +45,13 @@ bool TimeManager::init(uint8_t timeout_seconds)
     // Configurar timezone FIJO GMT-6 para México usando formato POSIX
     // CST-6: CST = Central Standard Time, -6 = GMT-6 (sin DST)
     bool posix_success = myTZ.setPosix("CST6");
-    
-    if (posix_success) {
+
+    if (posix_success)
+    {
         Serial.println("[TimeManager] Configurado timezone fijo GMT-6 para México (sin DST)");
-    } else {
+    }
+    else
+    {
         Serial.println("[TimeManager] ERROR: No se pudo configurar timezone POSIX");
         return false;
     }
@@ -78,7 +81,9 @@ bool TimeManager::init(uint8_t timeout_seconds)
 }
 
 /**
- * @brief Obtiene timestamp actual en formato ISO8601
+ * @brief Obtiene timestamp actual en formato ISO8601.
+ *        Sintaxis: YYYY-MM-DDTHH:MM:SSZ
+ *        Sintaxis: 2026-04-27T19:40:03Z
  */
 String TimeManager::getTimeISO8601()
 {
@@ -99,7 +104,8 @@ String TimeManager::getTimeISO8601()
     // Generar timestamp según el estado actual
     if (timeStatus() == timeSet)
     {
-        tm = myTZ.dateTime(ISO8601);
+        // tm = myTZ.dateTime(ISO8601);
+        tm = UTC.dateTime("Y-m-d\\TH:i:s") + "Z";
         time_valid = true;
     }
     else
@@ -271,7 +277,7 @@ void TimeManager::updateTimeStatus()
 
     // Verificar timezone fijo GMT-6 para México
     String current_time = myTZ.dateTime(ISO8601);
-    
+
     // Con offset fijo, debe ser siempre GMT-6 (-0600)
     if (!current_time.endsWith("-0600"))
     {
@@ -282,7 +288,7 @@ void TimeManager::updateTimeStatus()
     }
 
     // Con offset manual no hay DST - remover verificación de isDST()
-    
+
     // Si llegamos aquí, todo está bien
     current_status = NTP_SUCCESS;
 }

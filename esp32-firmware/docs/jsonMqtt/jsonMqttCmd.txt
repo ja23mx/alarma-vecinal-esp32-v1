@@ -116,25 +116,26 @@ ACK RESPUESTA A MQTT
 }
 
 **********************
-ENVIO DE CONTROL ESP32-SERVER
-
+ENVIO DE CONTROL ESP32-SERVER ---
+Tiempo en UTC 0
 {
   "dsp": "EA2C68",
   "type": "ctrl-av-1",
   "nm-ctrl":23,
   "btn-nm":2,
   "btn-str": "B",
-  "tm": "2025-08-31T21:42:00-0600",
-  "ntp_status": "success"
+  "tm": "2025-08-31T21:42:00Z",
+  "ntp_status": "success",
+  "estado-alarma": 1
 }
 
 ************************
-HEARBEAT
-
+HEARBEAT ---
+Tiempo en UTC 0
 {
   "dsp": "EA2C68",
   "tipo": "hb",
-  "tm": "2025-09-17T12:07:27-0600",
+  "tm": "2025-09-17T12:07:27Z,
   "ntp_status": "success"
 }
 
