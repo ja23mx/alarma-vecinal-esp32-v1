@@ -35,3 +35,6 @@ Thumbs.db
 
 # Local environment
 .env
+
+# numero de compilaciongit
+bin-tools-py/build_number.txt

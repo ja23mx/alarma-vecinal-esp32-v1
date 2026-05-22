@@ -9,8 +9,11 @@ void tareaProcesosCmd(void *pvParameters);
 
 void call_async_eventos(void);
 
+uint8_t get_estado_alarma(void);
+void reset_estado_alarma(void);
+
 void rev_async_evento_ctrl_av(void);
-void async_evento_ctrl_av(uint8_t tipoCtrl);
+void async_evento_ctrl_av(uint8_t tipoCtrl, uint8_t estadoAlarma);
 
 void rev_sync_evento_mqtt(void);
 void sync_evento_mqtt(String payload);

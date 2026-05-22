@@ -96,10 +96,10 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
     macAddress.replace(":", "");                // Remover los dos puntos
     String macSuffix = macAddress.substring(6); // Últimos 6 caracteres
     // Crear el SSID con el formato MN-AV1-{MAC}
-    String ssid = "MN-AV1-" + macSuffix;
+    String ssid = "AV-" + macSuffix;
 
     // Configurar el Access Point con la nueva configuración
-    WiFi.softAP(ssid.c_str(), "admin123456", escaneoWiFi.canalAP, 0, 2); //
+    WiFi.softAP(ssid.c_str(), "12345678", escaneoWiFi.canalAP, 0, 2); //
     esp_wifi_set_bandwidth(WIFI_IF_AP, WIFI_BW_HT20);
 
     LOGF("\r\n\r\nAP: %s\r\n\r\n", ssid);
