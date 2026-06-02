@@ -351,6 +351,7 @@ void mp3_pista_prueba_init(uint16_t pista, bool habilitar_amplificador) // compr
     // Manejo del amplificador basado en loop_1_pista_cmd
     if (habilitar_amplificador)
     {
+        Serial.print("\r\n\r\nAMP ON");
         mp3_amplificador_on(); // encender amplificador
     }
 

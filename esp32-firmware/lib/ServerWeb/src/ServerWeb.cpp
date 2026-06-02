@@ -161,8 +161,8 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
     delay(1); // Esperar 100ms para evitar rebotes del botón
   }
 
-  /* delay(1000);
-  ESP.restart(); // Reiniciar el ESP32 */
+  delay(1000);
+  ESP.restart(); // Reiniciar el ESP32
 
   return origenConfig; // Retornar el origen de la configuración
 }

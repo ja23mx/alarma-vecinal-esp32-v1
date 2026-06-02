@@ -257,7 +257,7 @@ void manejarBotonProg()
 
   if (estadoBoton == HIGH) // boton no presionado
   {
-    // Si se suelta el botón durante la ventana de decisión (5s-7s), iniciar programación web
+    // Si se suelta el botón durante la ventana de decisión (5s-10s), iniciar programación web
     if (ventanaDecisionActiva && botonPresionado)
     {
       LOG("\r\n\r\nIniciando programación web...");
@@ -304,20 +304,18 @@ void manejarBotonProg()
       funcionLlamada5s = true;
       ventanaDecisionActiva = true;
       led_control_boton_activo = true; // Tomar control del LED
-      digitalWrite(LED_STATUS, HIGH);  // LED fijo para indicar ventana de decisión
       LOG("\r\n\r\nVentana de decisión: suelte para programación web, mantenga para reset de datos...");
     }
 
-    // Cancelar ventana de decisión a los 7 segundos si sigue presionado
-    if (tiempoPresion >= 7000 && ventanaDecisionActiva)
+    // Cancelar ventana de decisión a los 10 segundos si sigue presionado
+    if (tiempoPresion >= 10000 && ventanaDecisionActiva)
     {
       ventanaDecisionActiva = false;
-      digitalWrite(LED_STATUS, LOW);
       LOG("Ventana de decisión cerrada - continuando hacia reset de datos...");
     }
 
-    // Parpadeo rápido antes de los 13 segundos (a partir de los 11 segundos)
-    if (tiempoPresion >= 11000 && !parpadeoIniciado && !ventanaDecisionActiva)
+    // Parpadeo desde los 5 segundos: indicación visual para soltar y programar
+    if (tiempoPresion >= 5000 && !parpadeoIniciado)
     {
       parpadeoIniciado = true;
       tiempoParpadeo = millis();
@@ -334,8 +332,8 @@ void manejarBotonProg()
       }
     }
 
-    // Función a los 20 segundos (solo si no está en ventana de decisión)
-    if (tiempoPresion >= 20000 && !funcionLlamada20s && !ventanaDecisionActiva)
+    // Función a los 25 segundos (solo si no está en ventana de decisión)
+    if (tiempoPresion >= 25000 && !funcionLlamada20s && !ventanaDecisionActiva)
     {
       funcionLlamada20s = true;
       digitalWrite(LED_STATUS, LOW); // Apagar LED después del parpadeo
