@@ -155,11 +155,11 @@ void rev_async_evento_ctrl_av(void) // 3434
         else
         {
             if (g_estadoAlarma == 0) filtrado = true;
-            else if (millis() - g_tsActivacion < 5000) filtrado = true;
             else g_estadoAlarma = 0;
         }
         xSemaphoreGive(mutexCtrlAlarma);
     }
+    LOG("\r\n rev_async_ev. estadoAlarma:" + String(estadoAlarma) + " g_est:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
     if (filtrado) return;
 
     LOG("\r\n\r\nrev_async_evento_ctrl_av.");
@@ -227,6 +227,11 @@ void sync_evento_mqtt(String payload) // 3434
     if (!deserializeJson(doc, payload))
     {
         int8_t estadoAlarma = doc["estado-alarma"] | -1;
+        if (estadoAlarma == -1)
+        {
+            int8_t estadoDisp = doc["estado-dispositivo"] | -1;
+            if (estadoDisp != -1) estadoAlarma = estadoDisp;
+        }
         if (estadoAlarma != -1 && mutexCtrlAlarma != NULL)
         {
             bool filtrado = false;
@@ -240,7 +245,6 @@ void sync_evento_mqtt(String payload) // 3434
                 else
                 {
                     if (g_estadoAlarma == 0) filtrado = true;
-                    else if (millis() - g_tsActivacion < 5000) filtrado = true;
                     else g_estadoAlarma = 0;
                 }
                 xSemaphoreGive(mutexCtrlAlarma);
