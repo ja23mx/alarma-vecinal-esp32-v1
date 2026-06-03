@@ -28,13 +28,26 @@ const char const_html_ccs_wifi[] PROGMEM = R"rawliteral(
         .header {
             width: 100%;
             max-width: 500px;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
         .header h1 {
             color: #1c85f4;
             font-size: 23px;
             margin: 0;
+        }
+
+        .btn-volver {
+            position: absolute;
+            left: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #007bff;
+            padding: 5px;
         }
 
         .wifi-container {
@@ -296,6 +309,11 @@ const char const_html_ccs_wifi[] PROGMEM = R"rawliteral(
 
     <!-- Header -->
     <div class="header">
+        <button class="btn-volver" onclick="window.location.href='/'">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M20 12H9M9 12L15 6M9 12L15 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
         <h1>WiFi</h1>
     </div>
 

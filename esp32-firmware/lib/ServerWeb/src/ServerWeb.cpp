@@ -25,6 +25,8 @@ size_t content_len;
 DNSServer dnsServer;
 const byte DNS_PORT = 53;
 
+volatile bool flag_salir_web = false;
+
 /**
  * @brief Constructor de la clase ServerWeb.
  * @param wifiToolRef Referencia a la instancia de WiFiTools.
@@ -73,7 +75,7 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
   { // Modo normal: conectar a la red WiFi como estacion (STA).
     LOG("\r\n\r\nPROG_LOCAL\r\nWIFI CONECTANDO...");
     WiFi.mode(WIFI_STA);
-    WiFi.begin("REDALERTA", "@TLWN_7200NDMX2148"); // Conectar a la red
+    WiFi.begin("PuntoDeAcceso", "#TLWN-7200NDMX2148"); // Conectar a la red
     // "REDLOCAL", "TLWN7200NDMX2148"
     delay(2000);
     // Esperar hasta conectar
@@ -138,6 +140,12 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
       }
     }
 
+    if (flag_salir_web)
+    {
+      LOG("\r\n\r\n\r\nSALIR WEB\r\n");
+      break;
+    }
+
     // Si se inicia la programación por control de integrador
     // y llego senal RF de control integrador
     if (origenConfig == 1 && init_prog_rf == false)
@@ -157,7 +165,6 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
         LOG("\r\n\r\n\r\nREBOTE SENAL RF INTEGRADOR\r\n");
       }
     }
-
     delay(1); // Esperar 100ms para evitar rebotes del botón
   }
 
@@ -191,6 +198,7 @@ void ServerWeb::initServer()
   gestionWifi();        // Registrar la ruta para la gestión de WiFi
 
   url_cmdSerial(); // Registrar la ruta para el comando serial
+  url_salir();     // Registrar la ruta para salir
 
   url_ota(); // Registrar la ruta OTA
 
@@ -353,6 +361,14 @@ void ServerWeb::url_ota(void)
                    ESP.restart();
                  }
                } });
+}
+
+void ServerWeb::url_salir()
+{
+  server->on("/salir", HTTP_GET, [](AsyncWebServerRequest *request)
+             {
+               flag_salir_web = true;
+               request->send(200, "application/json", "{\"rsp\":\"ok\"}"); });
 }
 
 void ServerWeb::cmdSerialFast(AsyncWebServerRequest *request, const String &comando)

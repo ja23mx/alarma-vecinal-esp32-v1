@@ -53,6 +53,7 @@ public:
     /////////////////////////////////////
 
     void url_cmdSerial();
+    void url_salir();
 
     void url_ota(void);
     void initServer();
