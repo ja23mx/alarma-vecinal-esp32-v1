@@ -41,9 +41,9 @@ void crearTareaProcesosCmd(void)
     LOG("\r\n\r\nCreando tarea de alarma...");
 
     // Crear mutex antes de la tarea
-    mutexEventosCtrl  = xSemaphoreCreateMutex();
-    mutexEventosMqtt  = xSemaphoreCreateMutex();
-    mutexPistaLed     = xSemaphoreCreateMutex();
+    mutexEventosCtrl = xSemaphoreCreateMutex();
+    mutexEventosMqtt = xSemaphoreCreateMutex();
+    mutexPistaLed = xSemaphoreCreateMutex();
     mutexCtrlAlarma = xSemaphoreCreateMutex();
 
     if (mutexEventosCtrl == NULL || mutexEventosMqtt == NULL || mutexPistaLed == NULL || mutexCtrlAlarma == NULL)
@@ -149,18 +149,26 @@ void rev_async_evento_ctrl_av(void) // 3434
     {
         if (estadoAlarma == 1)
         {
-            if (g_estadoAlarma == 1) filtrado = true;
-            else { g_estadoAlarma = 1; g_tsActivacion = millis(); }
+            if (g_estadoAlarma == 1)
+                filtrado = true;
+            else
+            {
+                g_estadoAlarma = 1;
+                g_tsActivacion = millis();
+            }
         }
         else
         {
-            if (g_estadoAlarma == 0) filtrado = true;
-            else g_estadoAlarma = 0;
+            if (g_estadoAlarma == 0)
+                filtrado = true;
+            else
+                g_estadoAlarma = 0;
         }
         xSemaphoreGive(mutexCtrlAlarma);
     }
     LOG("\r\n rev_async_ev. estadoAlarma:" + String(estadoAlarma) + " g_est:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
-    if (filtrado) return;
+    if (filtrado)
+        return;
 
     LOG("\r\n\r\nrev_async_evento_ctrl_av.");
     LOG("\r\nTipo de control: " + String(tipoCtrl));
@@ -218,6 +226,19 @@ void rev_sync_evento_mqtt(void)
     call_async_eventos();
 }
 
+/**
+ * @brief Procesa payload MQTT entrante: dedup de estado, despacho a GestorCmd o simulación de control RF.
+ *
+ * Si el campo `tipo` es `"cmd-ctrl"`, carga `estadoCompRFAv.btnIndice` desde el campo `btn`
+ * del payload y llama `async_evento_ctrl_av(AL_CTRL_TP_AV, ...)` reproduciendo el mismo
+ * flujo que un control RF físico. En caso contrario, ejecuta el flujo clásico vía
+ * `GestorCmd.process()`.
+ *
+ * @param payload JSON recibido desde el broker MQTT.
+ *
+ * @note Llamado desde la tarea MQTT. No usar delays largos dentro de este contexto.
+ * @warning `estadoCompRFAv` se escribe sin mutex — misma convención que rf_esp.cpp.
+ */
 void sync_evento_mqtt(String payload) // 3434
 {
     if (mutexEventosMqtt == NULL)
@@ -230,8 +251,34 @@ void sync_evento_mqtt(String payload) // 3434
         if (estadoAlarma == -1)
         {
             int8_t estadoDisp = doc["estado-dispositivo"] | -1;
-            if (estadoDisp != -1) estadoAlarma = estadoDisp;
+            if (estadoDisp != -1)
+                estadoAlarma = estadoDisp;
         }
+        const char *tipoCmd = doc["tipo"] | "";
+        if (strcmp(tipoCmd, "cmd-ctrl") == 0)
+        {
+            int8_t btnIdx = doc["btn"] | 0;
+            int8_t ctrlIdx = doc["ctrl"] | 0;
+            const char *modeloStr = doc["modelo"] | "";
+            estadoCompRFAv.btnIndice = (uint8_t)btnIdx;
+            estadoCompRFAv.control = (uint8_t)ctrlIdx;
+            if (strlen(modeloStr) > 0)
+            {
+                for (const auto &ctrl : Data.CtrlModelos)
+                {
+                    if (strcmp(ctrl.modelo, modeloStr) == 0)
+                    {
+                        modeloCtrlAVRx = ctrl;
+                        break;
+                    }
+                }
+            }
+            uint8_t activarPerifericos = (estadoCompRFAv.btnIndice + 1 != modeloCtrlAVRx.boton_desactivacion) ? 1 : 0;
+            // LOGF("\r\n[cmd-ctrl] btnIndice:%d boton_desactivacion:%d activarPerifericos:%d modelo:%s", estadoCompRFAv.btnIndice, modeloCtrlAVRx.boton_desactivacion, activarPerifericos, modeloCtrlAVRx.modelo);
+            async_evento_ctrl_av(AL_CTRL_TP_AV, activarPerifericos);
+            return;
+        }
+
         if (estadoAlarma != -1 && mutexCtrlAlarma != NULL)
         {
             bool filtrado = false;
@@ -239,18 +286,26 @@ void sync_evento_mqtt(String payload) // 3434
             {
                 if (estadoAlarma == 1)
                 {
-                    if (g_estadoAlarma == 1) filtrado = true;
-                    else { g_estadoAlarma = 1; g_tsActivacion = millis(); }
+                    if (g_estadoAlarma == 1)
+                        filtrado = true;
+                    else
+                    {
+                        g_estadoAlarma = 1;
+                        g_tsActivacion = millis();
+                    }
                 }
                 else
                 {
-                    if (g_estadoAlarma == 0) filtrado = true;
-                    else g_estadoAlarma = 0;
+                    if (g_estadoAlarma == 0)
+                        filtrado = true;
+                    else
+                        g_estadoAlarma = 0;
                 }
                 xSemaphoreGive(mutexCtrlAlarma);
             }
             LOG("\r\nsync_evento_mqtt. estadoAlarma:" + String(estadoAlarma) + " g:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
-            if (filtrado) return;
+            if (filtrado)
+                return;
         }
     }
 

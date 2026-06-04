@@ -6,7 +6,7 @@ NODO/E323A0/CMD
     play lista de 10 y 101 por 30 segundos
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
   "datos": [
     "*SA*01*6:2:30:10:101##",
@@ -26,7 +26,7 @@ NODO/E323A0/CMD
 
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
   "estado-alarma": 0 o 1,
   "datos": [
@@ -40,7 +40,7 @@ NODO/E323A0/CMD
     de la reproduccion de pista 51
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
   "estado-alarma": 0 o 1,
   "datos": [
@@ -51,7 +51,7 @@ NODO/E323A0/CMD
 
 *** APAGADO
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
   "datos": [
     "*SA*01*0:0:0##",
@@ -69,7 +69,7 @@ ON 1 PISTA
 *******************  SETTINGS  ********************************************************************
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "settings",
   "datos": [
     "setTimer:23"
@@ -106,7 +106,7 @@ respuesta
 ACK RESPUESTA A MQTT
 
 {
-  "dsp": "AV1-EA2C68",
+  "dsp": "EA2C68",
   "tipo": "hd-res",  
   "status": "OK",  
   "params": { 
