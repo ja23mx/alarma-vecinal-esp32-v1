@@ -22,17 +22,23 @@
 #include "GestorCmd.h"
 #include "voz_esp.h"
 #include "tarea_neopixel.h"
+#include <SPI.h>
+#include <Ethernet.h>
+#include <esp_system.h>
 
 extern WiFiTool WiFiTools; // Instancia de la clase WiFiTool
 
 bool envio_async_mqtt_msg_ctrl_alarma = false; // Variable para verificar si se ha enviado un mensaje de control
 String msg_ctrl_alarma;                        // Variable para almacenar el mensaje de control
+static bool _usingEthernet = false;            // true cuando el medio activo es Ethernet W5500
 
 // Crear una instancia del objeto MqttTools
 MqttTools mqttManager(mqtt_server, mqtt_port, mqtt_user, mqtt_pass);
 
 bool mqtt_loop()
 {
+    if (_usingEthernet)
+        Ethernet.maintain();
 
     rev_msg_ctrl_alarma(); // mensaje de control de alarma
 
@@ -50,10 +56,23 @@ bool mqtt_loop()
                 memset(GestorCmd.jsonBuffer, 0, sizeof(GestorCmd.jsonBuffer)); // Limpiar el buffer JSON
             }
         }
-        return true; // Retornar verdadero si el loop de MQTT se ejecuta correctamente
+        return true;
     }
 
-    return false; // Retornar falso si el loop de MQTT no se ejecuta correctamente
+    // MQTT falló — intentar cambio de medio si el activo no tiene link
+    if (_usingEthernet && Ethernet.linkStatus() != LinkON)
+    {
+        LOG("\r\nEthernet: link caído. Intentando fallback a WiFi...");
+        return gestionar_conexion_wifi();
+    }
+
+    if (!_usingEthernet && WiFi.status() != WL_CONNECTED)
+    {
+        LOG("\r\nWiFi: desconectado. Intentando fallback a Ethernet...");
+        return gestionar_conexion_wifi();
+    }
+
+    return false;
 }
 
 void envio_msg_init_broker(void)
@@ -150,32 +169,78 @@ void async_mqtt_msg_ctrl_alarma(void)
     }
 }
 
-bool gestionar_conexion_wifi(void)
+/**
+ * @brief Inicializa el módulo Ethernet W5500 y obtiene IP por DHCP.
+ *
+ * Realiza reset hardware del W5500, inicializa el bus SPI e intenta
+ * obtener IP vía DHCP. No bloquea si falla: retorna false para permitir
+ * el fallback automático a WiFi en gestionar_conexion_wifi().
+ *
+ * @return true  Si el W5500 fue detectado e IP obtenida por DHCP.
+ * @return false Si el hardware no responde, el cable no está conectado o DHCP falla.
+ */
+static bool initEthernet(void)
 {
+    byte mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA); // MAC de la interfaz WiFi STA del ESP32
 
-    if (init_conexion_wifi())              // Si la conexión es exitosa
-    {                                      //
-        TimeManager::getInstance().init(); // Inicializar TimeManager
-        if (mqttManager.init())
-        {
-            envio_msg_init_broker(); // Enviar el mensaje de inicialización al broker MQTT
-            Serial.print("\r\n\r\nMQTT inicializado correctamente.");
+    pinMode(W5500_RST_PIN, OUTPUT);
+    digitalWrite(W5500_RST_PIN, LOW);
+    delay(100);
+    digitalWrite(W5500_RST_PIN, HIGH);
+    delay(500);
 
-            /* unsigned long now = millis();
-            while (millis() - now < 30000) // Esperar 30 segundos para recibir mensajes MQTT
-            {
-                mqtt_loop(); // Ejecutar el loop de MQTT
-            } */
+    Ethernet.init(W5500_CS_PIN);
 
-            return true; // Retornar verdadero si la conexión es exitosa
-        }
+    LOG("\r\nEthernet: inicializando W5500...");
+
+    if (Ethernet.begin(mac) == 0)
+    {
+        if (Ethernet.hardwareStatus() == EthernetNoHardware)
+            LOG("\r\nEthernet: W5500 no detectado.");
+        else if (Ethernet.linkStatus() == LinkOFF)
+            LOG("\r\nEthernet: cable no conectado.");
         else
-        {
-            Serial.print("\r\n\r\nError al inicializar MQTT.");
-        }
+            LOG("\r\nEthernet: DHCP fallido.");
+        return false;
     }
 
-    return false; // Si no se pudo conectar a ninguna red conocida, retornar falso
+    LOG("\r\nEthernet OK. IP: " + Ethernet.localIP().toString());
+    return true;
+}
+
+bool gestionar_conexion_wifi(void)
+{
+    _usingEthernet = false;
+
+    // Intentar Ethernet primero
+    if (initEthernet())
+    {
+        TimeManager::getInstance().init();
+        if (mqttManager.init(true))
+        {
+            _usingEthernet = true;
+            envio_msg_init_broker();
+            Serial.print("\r\n\r\nMQTT sobre Ethernet inicializado.");
+            return true;
+        }
+        Serial.print("\r\n\r\nMQTT Ethernet fallido. Intentando WiFi...");
+    }
+
+    // Fallback a WiFi
+    if (init_conexion_wifi())
+    {
+        TimeManager::getInstance().init();
+        if (mqttManager.init(false))
+        {
+            envio_msg_init_broker();
+            Serial.print("\r\n\r\nMQTT sobre WiFi inicializado.");
+            return true;
+        }
+        Serial.print("\r\n\r\nError al inicializar MQTT sobre WiFi.");
+    }
+
+    return false;
 }
 
 bool init_conexion_wifi(void)

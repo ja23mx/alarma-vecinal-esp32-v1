@@ -28,9 +28,13 @@
 #define PIN_MP3_UART_RX 16 // Pin de recepción del UART1
 #define PIN_MP3_UART_TX 17 // Pin de transmisión del UART1
 #define PIN_MP3_BUSY 35    // Pin de busy del MP3
-#define LED_MP3 32         // Pin del LED del MP3
+#define LED_MP3 22         // Pin del LED del MP3
 #define PIN_NEOPIXEL 14    // Pin de Neopixel
 #define PIN_CNF_RED_ADC 39 // Pin de configuración de red
+// --- Ethernet W5500 SPI ---
+#define W5500_CS_PIN      5  // Chip Select W5500
+#define W5500_RST_PIN     32 // Reset W5500 (GPIO libre en TARJETA_SLT_V1)
+#define W5500_ENTROPY_PIN 36 // Pin ADC flotante para entropía SSLClient
 #define TARJETA_VERSION "TARJETA_SLT_V1"
 #else
 // Si no se define ninguna tarjeta, usar TARJETA_NEGRA por defecto
