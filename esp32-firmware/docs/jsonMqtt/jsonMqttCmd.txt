@@ -142,3 +142,28 @@ Tiempo en UTC 0
 }
 
 ************************
+
+
+
+*********
+encendido via mqtt control 
+
+  Encendido:
+  {
+    "dsp": "E323A0",
+    "tipo": "cmd-ctrl",
+    "modelo": "CTAV1",
+    "btn": 0,
+    "ctrl": 1
+  }
+
+  Apagado:
+  {
+    "dsp": "E323A0",
+    "tipo": "cmd-ctrl",
+    "modelo": "CTAV1",
+    "btn": 3,
+    "ctrl": 1
+  }
+
+*********

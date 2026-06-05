@@ -113,9 +113,9 @@ void rev_msg_ctrl_alarma(void)
         envio_async_mqtt_msg_ctrl_alarma = false;                                     // Reiniciar la variable de envío del mensaje de control
         bool rsp = mqttManager.publish(topic.c_str(), msg_ctrl_alarma.c_str(), true); // Publicar el heartbeat
         if (rsp)
-            LOG("\r\n\r\nMQTT. Publicado heartbeat:\r\n" + msg_ctrl_alarma); // Publicar el heartbeat
+            LOG("\r\n\r\nMQTT. Publicado:\r\n" + msg_ctrl_alarma); // Publicar el heartbeat
         else
-            LOG("\r\n\r\nMQTT. Error al publicar heartbeat:\r\n" + msg_ctrl_alarma); // Error al publicar el heartbeat
+            LOG("\r\n\r\nMQTT. Error al publicar:\r\n" + msg_ctrl_alarma); // Error al publicar el heartbeat
     }
 }
 
@@ -134,39 +134,49 @@ void async_mqtt_msg_ctrl_alarma(void)
         if (envio_async_mqtt_msg_ctrl_alarma)
             return; // Si el mensaje ya fue enviado, salir
 
+        uint8_t estado_alarma = get_estado_alarma();
+
         // Bloquear si ya está desactivada y llega desactivación (rebote)
-        if (get_estado_alarma() == 0 && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
+        if (estado_alarma == 0 && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
             return;
 
-        // Bloquear si ya está activada y llega activación (rebote)
-        if (get_estado_alarma() == 1 && (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion)
-            return;
-
+        // Notificar mqtt si no está activada y llego boton que no es desactivacion.
+        if (get_estado_alarma() == 0 && (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion)
         {
-            // Obtener datos de TimeManager
-            uint8_t estadoActual = (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion ? 1 : 0;
-            TimeManager &tm = TimeManager::getInstance();
-            String timestamp = tm.getTimeISO8601();
-            String ntp_status = tm.ntp_status;
-
-            Serial.print("\r\n\r\nestado_alarma_on: " + String(estadoActual));
-
-            // Construir mensaje con nueva estructura
-            msg_ctrl_alarma = "{\"dsp\":\"" + String(Data.numeroSerie) +
-                              "\",\"tipo\":\"ctrl-av-1\"" +
-                              ",\"nm-ctrl\":" + String(estadoCompRFAv.control) +
-                              ",\"btn-nm\":" + String(estadoCompRFAv.btnIndice + 1) +
-                              ",\"btn-str\":\"" + String(estadoCompRFAv.btnStr) +
-                              "\",\"tm\":\"" + timestamp +
-                              "\",\"ntp_status\":\"" + ntp_status +
-                              "\",\"estado-alarma\":" + String(estadoActual) +
-                              "}";
+            msgPayloadCtrlMqtt();
         }
-
-        envio_async_mqtt_msg_ctrl_alarma = true;                                  // Marcar como enviado
-        LOG("\r\n\r\nMQTT. Publicado mensaje de control:\r\n" + msg_ctrl_alarma); // Publicar el mensaje de control
+        // notificar mqtt si esta activada y llega boton de desactivaciom
+        else if (get_estado_alarma() == 1 && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
+        {
+            msgPayloadCtrlMqtt();
+        }
         break;
     }
+}
+
+void msgPayloadCtrlMqtt(void)
+{
+    // Obtener datos de TimeManager
+    uint8_t estadoActual = (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion ? 1 : 0;
+    TimeManager &tm = TimeManager::getInstance();
+    String timestamp = tm.getTimeISO8601();
+    String ntp_status = tm.ntp_status;
+
+    Serial.print("\r\n\r\nestado_alarma_on: " + String(estadoActual));
+
+    // Construir mensaje con nueva estructura
+    msg_ctrl_alarma = "{\"dsp\":\"" + String(Data.numeroSerie) +
+                      "\",\"tipo\":\"ctrl-av-1\"" +
+                      ",\"nm-ctrl\":" + String(estadoCompRFAv.control) +
+                      ",\"btn-nm\":" + String(estadoCompRFAv.btnIndice + 1) +
+                      ",\"btn-str\":\"" + String(estadoCompRFAv.btnStr) +
+                      "\",\"tm\":\"" + timestamp +
+                      "\",\"ntp_status\":\"" + ntp_status +
+                      "\",\"estado-alarma\":" + String(estadoActual) +
+                      "}";
+
+    envio_async_mqtt_msg_ctrl_alarma = true;                                  // Marcar como enviado
+    LOG("\r\n\r\nMQTT. Publicado mensaje de control:\r\n" + msg_ctrl_alarma); // Publicar el mensaje de control
 }
 
 /**

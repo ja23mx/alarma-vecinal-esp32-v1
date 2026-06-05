@@ -260,7 +260,7 @@ void sync_evento_mqtt(String payload) // 3434
             int8_t btnIdx = doc["btn"] | 0;
             int8_t ctrlIdx = doc["ctrl"] | 0;
             const char *modeloStr = doc["modelo"] | "";
-            estadoCompRFAv.btnIndice = (uint8_t)btnIdx;
+            estadoCompRFAv.btnIndice = (uint8_t)btnIdx - 1; // ajuste para manejo interno, comienza en 0
             estadoCompRFAv.control = (uint8_t)ctrlIdx;
             if (strlen(modeloStr) > 0)
             {
