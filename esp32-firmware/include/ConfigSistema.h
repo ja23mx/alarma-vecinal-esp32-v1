@@ -122,12 +122,12 @@
 ///// MQTT  ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define TOPIC_SUS_1 "NODO/" // Topico de suscripción MQTT
-#define TOPIC_SUS_2 "/CMD/"
+#define TOPIC_SUS_1 "AV/DEV/NODO/" // Topico de suscripción MQTT
+#define TOPIC_SUS_2 "AV/DEV/CMD/"
 #define TOPIC_SUS_3 "/ACK/"
 
-#define TOPIC_PUB "CONTROLADOR/HB/"        // Topico de publicación MQTT de heartbeat
-#define TOPIC_STATUS "CONTROLADOR/STATUS/" // Topico de publicación MQTT de heartbeat
+#define TOPIC_PUB "AV/DEV/CONTROLADOR/HB/"        // Topico de publicación MQTT de heartbeat
+#define TOPIC_STATUS "AV/DEV/CONTROLADOR/STATUS/" // Topico de publicación MQTT de heartbeat
 
 #define MQTT_CNF_TM_HB_SG 60             // Tiempo de espera en segungos para el heartbeat MQTT
 #define MQTT_CNF_TM_REV_LOOP_MS 500      // Tiempo de espera en milisegundos para el bucle MQTT
