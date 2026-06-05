@@ -18,14 +18,14 @@
 // Estáticos públicos
 // ---------------------------------------------------------------------------
 
-bool   MqttTools::dato_mqtt_callback = false;
-String MqttTools::payload            = "";
+bool MqttTools::dato_mqtt_callback = false;
+String MqttTools::payload = "";
 
 // ---------------------------------------------------------------------------
 // Constructor
 // ---------------------------------------------------------------------------
 
-MqttTools::MqttTools(const char* server, int port, const char* user, const char* pass)
+MqttTools::MqttTools(const char *server, int port, const char *user, const char *pass)
     : _wifiMqtt(_wifiClient),
       _sslEthClient(_ethClient, TAs, TAs_NUM, W5500_ENTROPY_PIN),
       _ethMqtt(_sslEthClient),
@@ -56,10 +56,10 @@ MqttTools::MqttTools(const char* server, int port, const char* user, const char*
  *
  * @warning No llamar funciones bloqueantes ni delay() desde este callback.
  */
-static void mqttCallback(char* topic, byte* payload, unsigned int length)
+static void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
     MqttTools::dato_mqtt_callback = true;
-    MqttTools::payload            = "";
+    MqttTools::payload = "";
     for (unsigned int i = 0; i < length; i++)
         MqttTools::payload += (char)payload[i];
     MqttTools::payload += '\0';
@@ -74,12 +74,12 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length)
 
 bool MqttTools::init(bool ethernet)
 {
-    _useEthernet  = ethernet;
+    _useEthernet = ethernet;
     _activeClient = ethernet ? &_ethMqtt : &_wifiMqtt;
 
-    _topicCmd    = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_2;
+    _topicCmd = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_2;
     _topicPubAck = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_3;
-    _clientId    = "AV-" + String(Data.numeroSerie);
+    _clientId = "AV-" + String(Data.numeroSerie);
 
     LOG("\r\n\r\nMQTT init. Medio: " + String(ethernet ? "Ethernet" : "WiFi"));
     LOG("\r\ntopicCmd: " + _topicCmd);
@@ -101,7 +101,7 @@ bool MqttTools::loop()
     if (dato_mqtt_callback)
     {
         dato_mqtt_callback = false;
-        nuevoPayload       = true;
+        nuevoPayload = true;
     }
 
     _activeClient->loop();
@@ -109,7 +109,7 @@ bool MqttTools::loop()
     return true;
 }
 
-bool MqttTools::publishAck(const String& msg)
+bool MqttTools::publishAck(const String &msg)
 {
     if (!conectado)
     {
@@ -119,7 +119,7 @@ bool MqttTools::publishAck(const String& msg)
     return _activeClient->publish(_topicPubAck.c_str(), msg.c_str(), true);
 }
 
-bool MqttTools::publish(const char* topic, const String& msg, bool retain)
+bool MqttTools::publish(const char *topic, const String &msg, bool retain)
 {
     if (!conectado)
     {
@@ -141,7 +141,7 @@ void MqttTools::revHbTimer()
     if (!_hbTmInit)
     {
         _hbTmInit = true;
-        _tiHb     = millis();
+        _tiHb = millis();
     }
 
     if (millis() - _tiHb > MQTT_CNF_TM_HB_SG * 1000)
@@ -155,7 +155,7 @@ void MqttTools::envHbMqtt()
 
     _tiHb = millis();
 
-    TimeManager& tm  = TimeManager::getInstance();
+    TimeManager &tm = TimeManager::getInstance();
     String timestamp = tm.getTimeISO8601();
     String ntpStatus = tm.ntp_status;
 
@@ -185,6 +185,8 @@ bool MqttTools::mqttReconnect()
         // Fix SSLClient: stop() limpia m_write_error antes de cada intento TLS
         if (_useEthernet)
             _sslEthClient.stop();
+        else
+            _wifiClient.stop();
 
         if (_activeClient->connect(_clientId.c_str(), mqtt_user, mqtt_pass))
         {
@@ -203,8 +205,11 @@ bool MqttTools::mqttReconnect()
 
 bool MqttTools::mqttSuscripcion()
 {
-    if (!_activeClient->connect(_clientId.c_str(), mqtt_user, mqtt_pass))
-        return mqttReconnect();
+    if (!_activeClient->connected())
+    {
+        if (!_activeClient->connect(_clientId.c_str(), mqtt_user, mqtt_pass))
+            return mqttReconnect();
+    }
 
     if (_activeClient->subscribe(_topicCmd.c_str()))
     {

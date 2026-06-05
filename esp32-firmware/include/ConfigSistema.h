@@ -3,6 +3,8 @@
 
 #define PROG_LOCAL 0 // 1: Programación local, 0: Programación ACCESS POINT
 
+#define ENTORNO 1 // 1 = DEV, 2 = PROD
+
 // ==============================================================================================
 // SELECCIÓN DE VERSIÓN DE TARJETA - DESCOMENTA SOLO UNA OPCIÓN
 // ==============================================================================================
@@ -32,8 +34,8 @@
 #define PIN_NEOPIXEL 14    // Pin de Neopixel
 #define PIN_CNF_RED_ADC 39 // Pin de configuración de red
 // --- Ethernet W5500 SPI ---
-#define W5500_CS_PIN      5  // Chip Select W5500
-#define W5500_RST_PIN     32 // Reset W5500 (GPIO libre en TARJETA_SLT_V1)
+#define W5500_CS_PIN 5       // Chip Select W5500
+#define W5500_RST_PIN 32     // Reset W5500 (GPIO libre en TARJETA_SLT_V1)
 #define W5500_ENTROPY_PIN 36 // Pin ADC flotante para entropía SSLClient
 #define TARJETA_VERSION "TARJETA_SLT_V1"
 #else
@@ -121,13 +123,30 @@
 
 ///// MQTT  ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+// PREFIJO 1 - DEV, 2 - PROD
 
+#ifdef ENTORNO == 1
+
+// TOPICS DE SUSCRIPCION
 #define TOPIC_SUS_1 "AV/DEV/NODO/" // Topico de suscripción MQTT
-#define TOPIC_SUS_2 "AV/DEV/CMD/"
+#define TOPIC_SUS_2 "/CMD/"
 #define TOPIC_SUS_3 "/ACK/"
 
+// TOPICS DE PUBLICACION
 #define TOPIC_PUB "AV/DEV/CONTROLADOR/HB/"        // Topico de publicación MQTT de heartbeat
 #define TOPIC_STATUS "AV/DEV/CONTROLADOR/STATUS/" // Topico de publicación MQTT de heartbeat
+
+#elif ENTORNO == 2
+
+// TOPICS DE SUSCRIPCION
+#define TOPIC_SUS_1 "AV/PROD/NODO/"
+#define TOPIC_SUS_2 "/CMD/"
+#define TOPIC_SUS_3 "/ACK/"
+
+// TOPICS DE PUBLICACION
+#define TOPIC_PUB "AV/PROD/CONTROLADOR/HB/"
+#define TOPIC_STATUS "AV/PROD/CONTROLADOR/STATUS/"
+#endif
 
 #define MQTT_CNF_TM_HB_SG 60             // Tiempo de espera en segungos para el heartbeat MQTT
 #define MQTT_CNF_TM_REV_LOOP_MS 500      // Tiempo de espera en milisegundos para el bucle MQTT
