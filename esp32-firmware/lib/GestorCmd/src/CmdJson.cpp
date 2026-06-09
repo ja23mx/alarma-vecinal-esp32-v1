@@ -61,6 +61,37 @@ void GestorCMD::datosJSON(void)
     {
         processEmgCoDi(); // Procesar comandos de emergencia almacenados
     }
+    else if (tipo == "update")
+    {
+        processUpdateJson();
+    }
+}
+
+void GestorCMD::processUpdateJson(void)
+{
+    LOG("\r\n\r\nprocessUpdateJson.");
+
+    String accion = docJson["accion"] | "";
+
+    if (accion == "")
+    {
+        LOG("\r\nError: Campo 'accion' ausente en payload update.");
+        generateAckResponse("ack-update", ERROR_FORMATO_INVALIDO);
+        rspJson = true;
+        return;
+    }
+
+    if (accion == "init" || accion == "status")
+    {
+        generateAckUpdate();
+        rspJson = true;
+        LOG("\r\nACK update enviado para accion: " + accion);
+        return;
+    }
+
+    LOG("\r\nError: Accion desconocida: " + accion);
+    generateAckResponse("ack-update", ERROR_PARAMETROS_INVALIDOS);
+    rspJson = true;
 }
 
 void GestorCMD::processEmgCoDi(void)

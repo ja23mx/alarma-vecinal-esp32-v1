@@ -3,7 +3,7 @@
 
 #define PROG_LOCAL 0 // 1: Programación local, 0: Programación ACCESS POINT
 
-#define ENTORNO 2 // 1 = DEV, 2 = PROD
+#define ENTORNO 1 // 1 = DEV, 2 = PROD
 
 // ==============================================================================================
 // SELECCIÓN DE VERSIÓN DE TARJETA - DESCOMENTA SOLO UNA OPCIÓN
