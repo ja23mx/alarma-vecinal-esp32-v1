@@ -3,7 +3,7 @@
 
 #define PROG_LOCAL 0 // 1: Programación local, 0: Programación ACCESS POINT
 
-#define ENTORNO 1 // 1 = DEV, 2 = PROD
+#define ENTORNO 2 // 1 = DEV, 2 = PROD
 
 // ==============================================================================================
 // SELECCIÓN DE VERSIÓN DE TARJETA - DESCOMENTA SOLO UNA OPCIÓN
@@ -125,7 +125,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // PREFIJO 1 - DEV, 2 - PROD
 
-#ifdef ENTORNO == 1
+#if defined(ENTORNO) && ENTORNO == 1
 
 // TOPICS DE SUSCRIPCION
 #define TOPIC_SUS_1 "AV/DEV/NODO/" // Topico de suscripción MQTT
@@ -136,7 +136,7 @@
 #define TOPIC_PUB "AV/DEV/CONTROLADOR/HB/"        // Topico de publicación MQTT de heartbeat
 #define TOPIC_STATUS "AV/DEV/CONTROLADOR/STATUS/" // Topico de publicación MQTT de heartbeat
 
-#elif ENTORNO == 2
+#elif defined(ENTORNO) && ENTORNO == 2
 
 // TOPICS DE SUSCRIPCION
 #define TOPIC_SUS_1 "AV/PROD/NODO/"

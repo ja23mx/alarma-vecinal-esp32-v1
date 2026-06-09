@@ -41,9 +41,10 @@ void setup()
 {
 
   Serial.begin(115200);
-  LOG("\r\n\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE) + " ");
-  LOG(String(SISTEMA_VERSION) + " " + String(SISTEMA_BUILD) + " . TRJ VRS: " + String(TARJETA_VERSION) + "\r\n\r\n");
-  LOG("\r\nCompilacion: " + String(SISTEMA_DATE) + "\r\n\r\n");
+  LOG("\r\n\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE));
+  LOG("\r\n" + String(SISTEMA_VERSION) + "\r\n" + String(SISTEMA_BUILD) + "\r\nTRJ VRS: " + String(TARJETA_VERSION));
+  LOG("\r\nFECHA COMPILACION: " + String(SISTEMA_DATE));
+  ENTORNO == 1 ? LOG("\r\nENTORNO DE DESARROLLO\r\n\r\n") : LOG("\r\nENTORNO DE PRODUCCION\r\n\r\n");
 
   delay(100); // Esperar 1 segundo para estabilizar el puerto serie
   // Configurar el tiempo de espera del Watchdog a 10 segundos
