@@ -11,3 +11,4 @@ void msgPayloadCtrlMqtt(void);
 
 bool gestionar_conexion_wifi(void);
 bool init_conexion_wifi(void);
+bool getUsingEthernet(void);

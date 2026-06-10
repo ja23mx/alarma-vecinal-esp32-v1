@@ -81,11 +81,25 @@ void GestorCMD::processUpdateJson(void)
         return;
     }
 
-    if (accion == "init" || accion == "status")
+    if (accion == "init")
+    {
+        String url = docJson["url"] | "";
+        if (url.length() > 0 && url.length() < 256)
+        {
+            url.toCharArray(otaUrl, sizeof(otaUrl));
+            otaPendiente = true;
+        }
+        generateAckUpdate();
+        rspJson = true;
+        LOG("\r\nACK update enviado. OTA pendiente para URL: " + url);
+        return;
+    }
+
+    if (accion == "status")
     {
         generateAckUpdate();
         rspJson = true;
-        LOG("\r\nACK update enviado para accion: " + accion);
+        LOG("\r\nACK update enviado para accion: status");
         return;
     }
 

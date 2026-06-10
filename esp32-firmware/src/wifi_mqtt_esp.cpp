@@ -22,6 +22,7 @@
 #include "GestorCmd.h"
 #include "voz_esp.h"
 #include "tarea_neopixel.h"
+#include "ota_esp.h"
 #include <SPI.h>
 #include <Ethernet.h>
 #include <esp_system.h>
@@ -30,7 +31,9 @@ extern WiFiTool WiFiTools; // Instancia de la clase WiFiTool
 
 bool envio_async_mqtt_msg_ctrl_alarma = false; // Variable para verificar si se ha enviado un mensaje de control
 String msg_ctrl_alarma;                        // Variable para almacenar el mensaje de control
-static bool _usingEthernet = false;            // true cuando el medio activo es Ethernet W5500
+static bool _usingEthernet = false;
+
+bool getUsingEthernet(void) { return _usingEthernet; }
 
 // Crear una instancia del objeto MqttTools
 MqttTools mqttManager(mqtt_server, mqtt_port, mqtt_user, mqtt_pass);
@@ -54,6 +57,14 @@ bool mqtt_loop()
                 async_led_server_data();                                       // Indicar que hay datos recepcionados del servidor
                 mqttManager.publishAck(GestorCmd.jsonBuffer);                  // Publicar el mensaje de error
                 memset(GestorCmd.jsonBuffer, 0, sizeof(GestorCmd.jsonBuffer)); // Limpiar el buffer JSON
+            }
+
+            if (otaPendiente)
+            {
+                otaPendiente = false;
+                mqttManager.loop(); // dar tiempo al ACK
+                delay(500);
+                ejecutarOTA(otaUrl);
             }
         }
         return true;
