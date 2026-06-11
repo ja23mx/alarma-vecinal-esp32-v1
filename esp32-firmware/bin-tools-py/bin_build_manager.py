@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 import inspect
 
-from bin_build_config import HEADER_PATH, OTA_DIR
+from bin_build_config import HEADER_PATH, OTA_DIR, RELEASES_DIR
 
 def parse_header(header_path):
     defines = {}
@@ -64,6 +64,14 @@ def after_build(source, target, env):
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
     print(f"✓ manifest.json actualizado")
+
+    release_dir = os.path.join(os.path.abspath(RELEASES_DIR), f"v{version_file}")
+    os.makedirs(release_dir, exist_ok=True)
+    shutil.copy(ota_dest, os.path.join(release_dir, ota_name))
+    with open(os.path.join(release_dir, "manifest.json"), "w") as f:
+        json.dump(manifest, f, indent=2)
+    print(f"✓ Release: v{version_file}/")
+    print(f"       {release_dir}")
 
     print("="*80 + "\n")
 
