@@ -644,6 +644,8 @@ const char const_html_ccs_index[] PROGMEM = R"rawliteral(
 
         <div class="menu" id="myMenu">
             <a onclick="submenu_init(1)"><span>Dispositivos RF</span></a>
+            <a onclick="toggleMenu(); window.location.href='/wifi'"><span>WiFi</span></a>
+            <a onclick="toggleMenu(); confirmarSalir()"><span>Salir</span></a>
         </div>
     </div>
 
@@ -1331,6 +1333,28 @@ const char const_html_ccs_index[] PROGMEM = R"rawliteral(
         }
 
         // **************************************************************************************
+        function confirmarSalir() {
+            mostrarAlertaDobleOpcion(
+                "¿Salir?",
+                ejecutarSalir,
+                closeAlertaDobleOpcion,
+                "Sí",
+                "No"
+            );
+        }
+
+        function ejecutarSalir() {
+            closeAlertaDobleOpcion();
+            fetch('/salir')
+                .then(r => r.json())
+                .then(() => {
+                    mostrar_alerta_1_opcion("Saliendo... El dispositivo reiniciará.", "OK");
+                })
+                .catch(() => {
+                    mostrar_alerta_1_opcion("Error al salir", "Cerrar");
+                });
+        }
+
         consultarApiData();
     </script>
 </body>

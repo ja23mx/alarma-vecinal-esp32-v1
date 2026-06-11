@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "esp_task_wdt.h"
-
+#include "esp_ota_ops.h"
 #include "WiFiTool.h"
 #include "ServerWeb.h"
 #include "DataManager.h"
@@ -41,9 +41,10 @@ void setup()
 {
 
   Serial.begin(115200);
-  LOG("\r\n\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE) + " ");
-  LOG(String(SISTEMA_VERSION) + " " + String(SISTEMA_BUILD) + " . TRJ VRS: " + String(TARJETA_VERSION) + "\r\n\r\n");
-  LOG("\r\nCompilacion: " + String(SISTEMA_DATE) + "\r\n\r\n");
+  LOG("\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE));
+  LOG("\r\n" + String(SISTEMA_VERSION) + "\r\n" + String(SISTEMA_ETAPA) + "\r\nTRJ VRS: " + String(TARJETA_VERSION));
+  LOG("\r\nFECHA COMPILACION: " + String(SISTEMA_DATE));
+  ENTORNO == 1 ? LOG("\r\nENTORNO DE DESARROLLO\r\n\r\n") : LOG("\r\nENTORNO DE PRODUCCION\r\n\r\n");
 
   delay(100); // Esperar 1 segundo para estabilizar el puerto serie
   // Configurar el tiempo de espera del Watchdog a 10 segundos
@@ -55,6 +56,7 @@ void setup()
   pinMode(LED_STATUS, OUTPUT);
   pinMode(AMPLIFICADOR, OUTPUT);
   pinMode(SALIDA_1, OUTPUT);
+  pinMode(PIN_CNF_RED_ADC, INPUT);
 
 #if defined(SALIDA_2)
   pinMode(SALIDA_2, OUTPUT);
@@ -80,6 +82,7 @@ void setup()
   crearTareaProcesos();      // Crear la tarea de procesos
   crearTareaProcesosCmd();   // Crear la tarea de procesos de comandos
   crearTareaGestionSalida(); // Crear la tarea de gestión de salidas
+  get_config_red();          // Leer la configuración de red en pic ADC (WiFi o Ethernet)
 
   if (PROG_LOCAL)
     //  Inicializa el servidor web y la red wifi, si no se conecta
@@ -255,7 +258,7 @@ void manejarBotonProg()
 
   if (estadoBoton == HIGH) // boton no presionado
   {
-    // Si se suelta el botón durante la ventana de decisión (5s-7s), iniciar programación web
+    // Si se suelta el botón durante la ventana de decisión (5s-10s), iniciar programación web
     if (ventanaDecisionActiva && botonPresionado)
     {
       LOG("\r\n\r\nIniciando programación web...");
@@ -302,20 +305,18 @@ void manejarBotonProg()
       funcionLlamada5s = true;
       ventanaDecisionActiva = true;
       led_control_boton_activo = true; // Tomar control del LED
-      digitalWrite(LED_STATUS, HIGH);  // LED fijo para indicar ventana de decisión
       LOG("\r\n\r\nVentana de decisión: suelte para programación web, mantenga para reset de datos...");
     }
 
-    // Cancelar ventana de decisión a los 7 segundos si sigue presionado
-    if (tiempoPresion >= 7000 && ventanaDecisionActiva)
+    // Cancelar ventana de decisión a los 10 segundos si sigue presionado
+    if (tiempoPresion >= 10000 && ventanaDecisionActiva)
     {
       ventanaDecisionActiva = false;
-      digitalWrite(LED_STATUS, LOW);
       LOG("Ventana de decisión cerrada - continuando hacia reset de datos...");
     }
 
-    // Parpadeo rápido antes de los 13 segundos (a partir de los 11 segundos)
-    if (tiempoPresion >= 11000 && !parpadeoIniciado && !ventanaDecisionActiva)
+    // Parpadeo desde los 5 segundos: indicación visual para soltar y programar
+    if (tiempoPresion >= 5000 && !parpadeoIniciado)
     {
       parpadeoIniciado = true;
       tiempoParpadeo = millis();
@@ -332,8 +333,8 @@ void manejarBotonProg()
       }
     }
 
-    // Función a los 20 segundos (solo si no está en ventana de decisión)
-    if (tiempoPresion >= 20000 && !funcionLlamada20s && !ventanaDecisionActiva)
+    // Función a los 25 segundos (solo si no está en ventana de decisión)
+    if (tiempoPresion >= 25000 && !funcionLlamada20s && !ventanaDecisionActiva)
     {
       funcionLlamada20s = true;
       digitalWrite(LED_STATUS, LOW); // Apagar LED después del parpadeo
@@ -342,4 +343,51 @@ void manejarBotonProg()
       ESP.restart();  // Reiniciar el ESP para aplicar los cambios
     }
   }
+}
+
+int leerSwitchConAntirrebote(int pinADC, int numLecturas, int retardoMs)
+{
+  long suma = 0;
+  int lecturaActual;
+  int tolerancia = 100;
+
+  // Realiza 'numLecturas' lecturas para filtrar ruido y rebotes
+  for (int i = 0; i < numLecturas; i++)
+  {
+    lecturaActual = analogRead(pinADC);
+    suma += lecturaActual;
+    delay(retardoMs); // Pequeña pausa entre lecturas
+  }
+
+  // Calcula el promedio
+  int promedio = suma / numLecturas;
+
+  // Serial.print("\r\n\r\npromedio: " + String(promedio));
+
+  // Verifica en qué rango está la lectura con tolerancia
+  if (abs(promedio - 4095) <= tolerancia)
+  {
+    return 0;
+  }
+  else if (abs(promedio - 1984) <= tolerancia)
+  {
+    return 1;
+  }
+  else if (abs(promedio - 968) <= tolerancia)
+  {
+    return 2;
+  }
+
+  // Si no está en ningún rango válido, retorna -1 (error o estado inválido)
+  return -1;
+}
+
+void get_config_red(void)
+{
+  config_red = leerSwitchConAntirrebote(PIN_CNF_RED_ADC, 15, 50); // lectura de configuracion de red
+
+  if (config_red == 0 || config_red == -1) // por defecto es 1 (ethernet) en caso de que no sea lectura correcta
+    config_red = 1;
+
+  Serial.print("\r\n\r\nCONFIG RED= " + String(config_red));
 }

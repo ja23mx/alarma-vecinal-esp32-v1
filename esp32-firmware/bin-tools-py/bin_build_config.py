@@ -1,6 +1,4 @@
-# Nombre base del firmware
-NAME_BASE = "esp32-av-dev-test"
-# Versión del firmware
-VERSION = "v0.1"
-# Carpeta destino para el archivo .bin
-DEST_DIR = "../esp32-bin-files/dev-test"
+# Ruta al header con la versión del firmware (fuente única de verdad)
+HEADER_PATH = "../include/CnfTarjeta.h"
+# Carpeta destino para el archivo OTA
+OTA_DIR = "../esp32-bin-files/ota"

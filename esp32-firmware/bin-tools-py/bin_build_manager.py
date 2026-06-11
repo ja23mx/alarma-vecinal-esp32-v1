@@ -1,98 +1,70 @@
 import shutil
 import os
+import json
+import re
 from datetime import datetime
 import inspect
 
-# Importar configuración
-from bin_build_config import NAME_BASE, VERSION, DEST_DIR
+from bin_build_config import HEADER_PATH, OTA_DIR
 
-def get_next_build_number(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            try:
-                num = int(f.read().strip())
-            except ValueError:
-                num = 0  # Si el archivo está vacío o contiene un valor no válido, inicializa en 0
-    else:
-        num = 0
-    num += 1
-    with open(file_path, "w") as f:
-        f.write(str(num))
-    return num
+def parse_header(header_path):
+    defines = {}
+    pattern = re.compile(r'#define\s+(\w+)\s+"([^"]+)"')
+    with open(header_path, "r") as f:
+        for line in f:
+            m = pattern.match(line.strip())
+            if m:
+                defines[m.group(1)] = m.group(2)
+    return defines
 
 def after_build(source, target, env):
     firmware_bin = str(target[0])
-    build_dir = env.subst("$BUILD_DIR")
-    
-    # Obtener directorio del framework para boot_app0.bin
-    framework_dir = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
-    boot_app0_path = os.path.join(framework_dir, "tools", "partitions", "boot_app0.bin")
-    
-    # Rutas de los archivos binarios
-    bootloader_bin = os.path.join(build_dir, "bootloader.bin")
-    partitions_bin = os.path.join(build_dir, "partitions.bin")
-    
+
     script_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-    build_file = os.path.join(script_dir, "build_number.txt")
-    build_number = get_next_build_number(build_file)
-    timestamp = datetime.now().strftime("%d-%m-%Y-%H%M%SHRS")
-    
-    # Crear nombre base para los archivos
-    base_name = f"{NAME_BASE}-{VERSION}-B-{build_number:04d}-T-{timestamp}"
-    
-    destino_dir = os.path.abspath(DEST_DIR)
-    os.makedirs(destino_dir, exist_ok=True)
-    
-    # Lista de archivos a copiar con sus direcciones de flash
-    archivos = [
-        {"src": bootloader_bin, "name": f"{base_name}-0x1000-bootloader.bin", "addr": "0x1000"},
-        {"src": partitions_bin, "name": f"{base_name}-0x8000-partitions.bin", "addr": "0x8000"},
-        {"src": boot_app0_path, "name": f"{base_name}-0xe000-boot_app0.bin", "addr": "0xe000"},
-        {"src": firmware_bin, "name": f"{base_name}-0x10000-firmware.bin", "addr": "0x10000"}
-    ]
-    
+    header_path = os.path.abspath(os.path.join(script_dir, HEADER_PATH))
+    info = parse_header(header_path)
+
+    firmware       = info.get("SISTEMA_FIRMWARE", "esp32.av")
+    ver            = info.get("SISTEMA_VERSION", "0.0.0")
+    etapa          = info.get("SISTEMA_ETAPA", "beta")
+    version_file   = f"{ver}-{etapa}"    # 0.1.0-beta.1  (para nombre de archivo)
+    version_mf     = f"{ver}.{etapa}"    # 0.1.0.beta.1  (para manifest)
+
+    timestamp = datetime.now().strftime("T.%d.%m.%Y.%H%M%SHRS")
+    ota_name  = f"{firmware}-v{version_file}-{timestamp}-ota.bin"
+
+    ota_dir  = os.path.abspath(OTA_DIR)
+    os.makedirs(ota_dir, exist_ok=True)
+
+    for f in os.listdir(ota_dir):
+        if f.endswith("-ota.bin"):
+            os.remove(os.path.join(ota_dir, f))
+
+    ota_dest = os.path.join(ota_dir, ota_name)
+
     print("\n" + "="*80)
-    print(f"BUILD #{build_number:04d} - {timestamp}")
+    print(f"BUILD  {firmware}  v{version_file}  {timestamp}")
     print("="*80)
-    
-    # Copiar cada archivo
-    for archivo in archivos:
-        if os.path.exists(archivo["src"]):
-            destino = os.path.join(destino_dir, archivo["name"])
-            shutil.copy(archivo["src"], destino)
-            size_kb = os.path.getsize(destino) / 1024
-            print(f"✓ {archivo['addr']}: {archivo['name']} ({size_kb:.2f} KB)")
-        else:
-            print(f"✗ ERROR: No se encontró {archivo['src']}")
-    
-    # Crear archivo de instrucciones para flashear
-    instructions_file = os.path.join(destino_dir, f"{base_name}-FLASH-INSTRUCTIONS.txt")
-    with open(instructions_file, "w") as f:
-        f.write(f"INSTRUCCIONES DE FLASHEO - BUILD #{build_number:04d}\n")
-        f.write(f"Fecha: {timestamp}\n")
-        f.write(f"Versión: {NAME_BASE} {VERSION}\n")
-        f.write("="*80 + "\n\n")
-        f.write("OPCIÓN 1 - ESP32 Flash Download Tool:\n")
-        f.write("-" * 40 + "\n")
-        for archivo in archivos:
-            f.write(f"  {archivo['addr']}: {archivo['name']}\n")
-        f.write("\nConfiguracion:\n")
-        f.write("  SPI SPEED: 40MHz\n")
-        f.write("  SPI MODE: DIO\n")
-        f.write("  FLASH SIZE: 4MB\n\n")
-        
-        f.write("OPCIÓN 2 - esptool.py:\n")
-        f.write("-" * 40 + "\n")
-        cmd = "esptool.py --chip esp32 --port COM4 --baud 921600 write_flash "
-        for archivo in archivos:
-            cmd += f"{archivo['addr']} {archivo['name']} "
-        f.write(cmd + "\n\n")
-        
-        f.write("OPCIÓN 3 - PlatformIO:\n")
-        f.write("-" * 40 + "\n")
-        f.write("pio run --target upload\n")
-    
-    print(f"\n✓ Instrucciones guardadas en: {instructions_file}")
+
+    if os.path.exists(firmware_bin):
+        shutil.copy(firmware_bin, ota_dest)
+        size_kb = os.path.getsize(ota_dest) / 1024
+        print(f"✓ OTA: {ota_name} ({size_kb:.2f} KB)")
+        print(f"       {ota_dir}")
+    else:
+        print(f"✗ ERROR: No se encontró {firmware_bin}")
+
+    manifest = {
+        "firmware": firmware,
+        "version": version_mf,
+        "fecha": timestamp,
+        "file": ota_name
+    }
+    manifest_path = os.path.join(ota_dir, "manifest.json")
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+    print(f"✓ manifest.json actualizado")
+
     print("="*80 + "\n")
 
 Import("env")

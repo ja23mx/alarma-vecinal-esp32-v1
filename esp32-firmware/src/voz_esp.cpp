@@ -9,6 +9,7 @@
 #include "rf_esp.h"
 #include "GestorCmd.h"
 #include "tarea_neopixel.h"
+#include "procesos_cmd.h"
 
 #define AMP_ON 1  // Estado del amplificador encendido
 #define AMP_OFF 0 // Estado del amplificador apagado
@@ -116,12 +117,25 @@ void async_config_mp3_cmd(void)
         async_cnf_mp3_play_una_pista(numerosArrVoz[1]);
         break;
 
-    // reproduccion de una pista en bucle ******* REVISION. FALLA ********
+    // reproduccion de una pista en bucle
     case 2:
         async_stop_mp3_cmd_flag = false; // bandera para indicar si se ha detenido el comando MP3 via cmd
         async_init_mp3_cmd_flag = true;
         async_play_1_pista_flag_bucle = true; // bandera para indicar si se reproduce una pista en bucle
         async_play_1_pista_num = numerosArrVoz[1];
+        break;
+
+    // reproduccion de una pista temporizada
+    case 3:
+        async_stop_mp3_cmd_flag = false; // bandera para indicar si se ha detenido el comando MP3 via cmd
+        async_init_mp3_cmd_flag = true;  // bandera para indicar si se ha inicializado el comando MP3 via cmd
+
+        async_play_1_pista_flag_bucle = true;      // bandera para indicar si se reproduce una pista en bucle
+        async_play_1_pista_num = numerosArrVoz[2]; //
+
+        async_reproduccion_timer_flag = true;                      // bandera para indicar si se reproduce una pista en bucle
+        async_reproduccion_timer_limite = numerosArrVoz[1] * 1000; // tiempo de reproduccion
+        async_reproduccion_timer_inicio = millis();                // tiempo de inicio de la reproduccion
         break;
 
     case 5:
@@ -337,6 +351,7 @@ void mp3_pista_prueba_init(uint16_t pista, bool habilitar_amplificador) // compr
     // Manejo del amplificador basado en loop_1_pista_cmd
     if (habilitar_amplificador)
     {
+        Serial.print("\r\n\r\nAMP ON");
         mp3_amplificador_on(); // encender amplificador
     }
 
@@ -578,6 +593,7 @@ void async_ejec_mp3_play_una_pista(void)
 
     bool resultado = mp3_reproducion_audio(async_pista_1_ciclo_pista, 1); //
     mp3_amplificador_off();                                               // apagar amplificador
+    reset_estado_alarma();                                                // reset de bandera de estado de dispositivo.
 
 #if ENABLE_MP3_ERROR_MANAGEMENT
     if (resultado)
@@ -608,7 +624,7 @@ void async_cnf_mp3_play_una_pista(uint16_t pista)
     delay(100);
 }
 
-void async_ejec_mp3_play_lista(void) // funcion para reproducir una lista de pistas de audio
+void async_ejec_mp3_play_lista(void) // funcion para reproducir una lista de pistas de audio 3434
 {
 
     if (!lista_pistas_arr_flag) // si no hay pistas para reproduccion
@@ -648,6 +664,7 @@ void async_ejec_mp3_play_lista(void) // funcion para reproducir una lista de pis
             break;
     }
 
+    reset_estado_alarma();  // reset de bandera de estado de dispositivo.
     mp3_amplificador_off(); // apagar amplificador
 
     LOG("\r\n\r\n\r\ncmdAudioBusy: false\r\n\r\n");

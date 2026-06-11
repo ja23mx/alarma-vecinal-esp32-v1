@@ -15,23 +15,33 @@
 
 #include "wifi_mqtt_esp.h"
 #include "VariablesGlobales.h"
-#include "mqtt_cert.h"
+/* #include "mqtt_cert_jlinfra_wifi.h"
+#include "mqtt_cert_jlinfra_ethernet.h" */
 #include "procesos_cmd.h"
 #include "gestor_salidas.h"
 #include "GestorCmd.h"
 #include "voz_esp.h"
 #include "tarea_neopixel.h"
+#include "ota_esp.h"
+#include <SPI.h>
+#include <Ethernet.h>
+#include <esp_system.h>
 
 extern WiFiTool WiFiTools; // Instancia de la clase WiFiTool
 
 bool envio_async_mqtt_msg_ctrl_alarma = false; // Variable para verificar si se ha enviado un mensaje de control
 String msg_ctrl_alarma;                        // Variable para almacenar el mensaje de control
+static bool _usingEthernet = false;
+
+bool getUsingEthernet(void) { return _usingEthernet; }
 
 // Crear una instancia del objeto MqttTools
 MqttTools mqttManager(mqtt_server, mqtt_port, mqtt_user, mqtt_pass);
 
 bool mqtt_loop()
 {
+    if (_usingEthernet)
+        Ethernet.maintain();
 
     rev_msg_ctrl_alarma(); // mensaje de control de alarma
 
@@ -48,15 +58,38 @@ bool mqtt_loop()
                 mqttManager.publishAck(GestorCmd.jsonBuffer);                  // Publicar el mensaje de error
                 memset(GestorCmd.jsonBuffer, 0, sizeof(GestorCmd.jsonBuffer)); // Limpiar el buffer JSON
             }
+
+            if (otaPendiente)
+            {
+                otaPendiente = false;
+                mqttManager.loop(); // dar tiempo al ACK
+                delay(500);
+                ejecutarOTA(otaUrl);
+            }
         }
-        return true; // Retornar verdadero si el loop de MQTT se ejecuta correctamente
+        return true;
     }
 
-    return false; // Retornar falso si el loop de MQTT no se ejecuta correctamente
+    // MQTT falló — intentar cambio de medio si el activo no tiene link
+    if (_usingEthernet && Ethernet.linkStatus() != LinkON)
+    {
+        LOG("\r\nEthernet: link caído. Intentando fallback a WiFi...");
+        return gestionar_conexion_wifi();
+    }
+
+    if (!_usingEthernet && WiFi.status() != WL_CONNECTED)
+    {
+        LOG("\r\nWiFi: desconectado. Intentando fallback a Ethernet...");
+        return gestionar_conexion_wifi();
+    }
+
+    return false;
 }
 
 void envio_msg_init_broker(void)
 {
+    // funcion deshabilitada para liberacion de beta, posible reincorporacion en version futura.
+    return;
     if (!mqttManager.conectado) // Si no está conectado a MQTT, salir
         return;
 
@@ -91,9 +124,9 @@ void rev_msg_ctrl_alarma(void)
         envio_async_mqtt_msg_ctrl_alarma = false;                                     // Reiniciar la variable de envío del mensaje de control
         bool rsp = mqttManager.publish(topic.c_str(), msg_ctrl_alarma.c_str(), true); // Publicar el heartbeat
         if (rsp)
-            LOG("\r\n\r\nMQTT. Publicado heartbeat:\r\n" + msg_ctrl_alarma); // Publicar el heartbeat
+            LOG("\r\n\r\nMQTT. Publicado:\r\n" + msg_ctrl_alarma); // Publicar el heartbeat
         else
-            LOG("\r\n\r\nMQTT. Error al publicar heartbeat:\r\n" + msg_ctrl_alarma); // Error al publicar el heartbeat
+            LOG("\r\n\r\nMQTT. Error al publicar:\r\n" + msg_ctrl_alarma); // Error al publicar el heartbeat
     }
 }
 
@@ -106,71 +139,129 @@ void async_mqtt_msg_ctrl_alarma(void)
     LOG("\r\n\r\nMQTT. Enviando mensaje de control.");
     LOG("\r\n\r\nMQTT. Configuracion: " + String(modeloCtrlAVRx.configuracion));
 
-    static bool estado_alarma_on = false;
-
     switch (modeloCtrlAVRx.configuracion) // Obtener la configuración del control
     {
     case 1: // alerta vecinal
         if (envio_async_mqtt_msg_ctrl_alarma)
             return; // Si el mensaje ya fue enviado, salir
 
-        // Si la alarma ya está desactivada y se presionó el botón de desactivación, salir
-        // no enviar mensaje redundante
-        if (estado_alarma_on == false && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
+        uint8_t estado_alarma = get_estado_alarma();
+
+        // Bloquear si ya está desactivada y llega desactivación (rebote)
+        if (estado_alarma == 0 && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
             return;
 
-        (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion ? estado_alarma_on = false : estado_alarma_on = true;
-
-        // Obtener datos de TimeManager
-        TimeManager &tm = TimeManager::getInstance();
-        String timestamp = tm.getTimeISO8601();
-        String ntp_status = tm.ntp_status;
-
-        Serial.print("\r\n\r\nestado_alarma_on: " + String(estado_alarma_on));
-
-        // Construir mensaje con nueva estructura
-        msg_ctrl_alarma = "{\"dsp\":\"" + String(Data.numeroSerie) +
-                          "\",\"tipo\":\"ctrl-av-1\"" +
-                          ",\"nm-ctrl\":" + String(estadoCompRFAv.control) +
-                          ",\"btn-nm\":" + String(estadoCompRFAv.btnIndice + 1) +
-                          ",\"btn-str\":\"" + String(estadoCompRFAv.btnStr) +
-                          "\",\"tm\":\"" + timestamp +
-                          "\",\"ntp_status\":\"" + ntp_status +
-                          "\",\"estado-alarma\":" + String(estado_alarma_on) +
-                          "}";
-
-        envio_async_mqtt_msg_ctrl_alarma = true;                                  // Marcar como enviado
-        LOG("\r\n\r\nMQTT. Publicado mensaje de control:\r\n" + msg_ctrl_alarma); // Publicar el mensaje de control
+        // Notificar mqtt si no está activada y llego boton que no es desactivacion.
+        if (get_estado_alarma() == 0 && (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion)
+        {
+            msgPayloadCtrlMqtt();
+        }
+        // notificar mqtt si esta activada y llega boton de desactivaciom
+        else if (get_estado_alarma() == 1 && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
+        {
+            msgPayloadCtrlMqtt();
+        }
         break;
     }
 }
 
-bool gestionar_conexion_wifi(void)
+void msgPayloadCtrlMqtt(void)
 {
+    // Obtener datos de TimeManager
+    uint8_t estadoActual = (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion ? 1 : 0;
+    TimeManager &tm = TimeManager::getInstance();
+    String timestamp = tm.getTimeISO8601();
+    String ntp_status = tm.ntp_status;
 
-    if (init_conexion_wifi())              // Si la conexión es exitosa
-    {                                      //
-        TimeManager::getInstance().init(); // Inicializar TimeManager
-        if (mqttManager.init())
-        {
-            envio_msg_init_broker(); // Enviar el mensaje de inicialización al broker MQTT
-            Serial.print("\r\n\r\nMQTT inicializado correctamente.");
+    Serial.print("\r\n\r\nestado_alarma_on: " + String(estadoActual));
 
-            /* unsigned long now = millis();
-            while (millis() - now < 30000) // Esperar 30 segundos para recibir mensajes MQTT
-            {
-                mqtt_loop(); // Ejecutar el loop de MQTT
-            } */
+    // Construir mensaje con nueva estructura
+    msg_ctrl_alarma = "{\"dsp\":\"" + String(Data.numeroSerie) +
+                      "\",\"tipo\":\"ctrl-av-1\"" +
+                      ",\"nm-ctrl\":" + String(estadoCompRFAv.control) +
+                      ",\"btn-nm\":" + String(estadoCompRFAv.btnIndice + 1) +
+                      ",\"btn-str\":\"" + String(estadoCompRFAv.btnStr) +
+                      "\",\"tm\":\"" + timestamp +
+                      "\",\"ntp_status\":\"" + ntp_status +
+                      "\",\"estado-alarma\":" + String(estadoActual) +
+                      "}";
 
-            return true; // Retornar verdadero si la conexión es exitosa
-        }
+    envio_async_mqtt_msg_ctrl_alarma = true;                                  // Marcar como enviado
+    LOG("\r\n\r\nMQTT. Publicado mensaje de control:\r\n" + msg_ctrl_alarma); // Publicar el mensaje de control
+}
+
+/**
+ * @brief Inicializa el módulo Ethernet W5500 y obtiene IP por DHCP.
+ *
+ * Realiza reset hardware del W5500, inicializa el bus SPI e intenta
+ * obtener IP vía DHCP. No bloquea si falla: retorna false para permitir
+ * el fallback automático a WiFi en gestionar_conexion_wifi().
+ *
+ * @return true  Si el W5500 fue detectado e IP obtenida por DHCP.
+ * @return false Si el hardware no responde, el cable no está conectado o DHCP falla.
+ */
+static bool initEthernet(void)
+{
+    byte mac[6];
+    esp_read_mac(mac, ESP_MAC_WIFI_STA); // MAC de la interfaz WiFi STA del ESP32
+
+    pinMode(W5500_RST_PIN, OUTPUT);
+    digitalWrite(W5500_RST_PIN, LOW);
+    delay(100);
+    digitalWrite(W5500_RST_PIN, HIGH);
+    delay(500);
+
+    Ethernet.init(W5500_CS_PIN);
+
+    LOG("\r\nEthernet: inicializando W5500...");
+
+    if (Ethernet.begin(mac) == 0)
+    {
+        if (Ethernet.hardwareStatus() == EthernetNoHardware)
+            LOG("\r\nEthernet: W5500 no detectado.");
+        else if (Ethernet.linkStatus() == LinkOFF)
+            LOG("\r\nEthernet: cable no conectado.");
         else
-        {
-            Serial.print("\r\n\r\nError al inicializar MQTT.");
-        }
+            LOG("\r\nEthernet: DHCP fallido.");
+        return false;
     }
 
-    return false; // Si no se pudo conectar a ninguna red conocida, retornar falso
+    LOG("\r\nEthernet OK. IP: " + Ethernet.localIP().toString());
+    return true;
+}
+
+bool gestionar_conexion_wifi(void)
+{
+    _usingEthernet = false;
+
+    // Intentar Ethernet primero
+    if (initEthernet())
+    {
+        TimeManager::getInstance().init();
+        if (mqttManager.init(true))
+        {
+            _usingEthernet = true;
+            envio_msg_init_broker();
+            Serial.print("\r\n\r\nMQTT sobre Ethernet inicializado.");
+            return true;
+        }
+        Serial.print("\r\n\r\nMQTT Ethernet fallido. Intentando WiFi...");
+    }
+
+    // Fallback a WiFi
+    if (init_conexion_wifi())
+    {
+        TimeManager::getInstance().init();
+        if (mqttManager.init(false))
+        {
+            envio_msg_init_broker();
+            Serial.print("\r\n\r\nMQTT sobre WiFi inicializado.");
+            return true;
+        }
+        Serial.print("\r\n\r\nError al inicializar MQTT sobre WiFi.");
+    }
+
+    return false;
 }
 
 bool init_conexion_wifi(void)

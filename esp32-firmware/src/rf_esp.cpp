@@ -76,18 +76,22 @@ bool rf_esp_nv_dato(void)
     LOGF("\r\nboton: %d", estadoCompRFAv.btnIndice); /* 3434 */
     LOGF("\r\nconfiguracion: %d", estadoCompRFAv.configuracion);
 
+    uint8_t activarPerifericos = 0;
+
     switch (estadoCompRFAv.configuracion) // Obtener la configuración del control
     {
     // CONTROL ALARMA VECINAL
-    case 1:                                  // alerta vecinal
-        async_mqtt_msg_ctrl_alarma();        // Enviar mensaje MQTT de control de alarma
-        async_evento_ctrl_av(AL_CTRL_TP_AV); // Llamar a la función para procesar el evento de control
-        return true;                         // si se encendio o apago la alarma, salir de la funcion
+    case 1: // alerta vecinal
+            // estadoCompRFAv.btnIndice 0:2 -> Boton A:C, 3 -> Boton D
+        estadoCompRFAv.btnIndice != 3 ? activarPerifericos = 1 : activarPerifericos = 0;
+        async_mqtt_msg_ctrl_alarma();                            // Enviar mensaje MQTT de control de alarma
+        async_evento_ctrl_av(AL_CTRL_TP_AV, activarPerifericos); // Llamar a la función para procesar el evento de control
+        return true;                                             // si se encendio o apago la alarma, salir de la funcion
         break;
     // CONTROL DE GUARDIAN DE ALARMA
-    case 2:                                        // alerta sonora y mensaje
-        async_evento_ctrl_av(AL_CTRL_TP_GUARDIAN); // Llamar a la función para procesar el evento de control
-        return true;                               // si se encendio o apago la alarma, salir de la funcion
+    case 2: // alerta sonora y mensaje
+        // async_evento_ctrl_av(AL_CTRL_TP_GUARDIAN); // Llamar a la función para procesar el evento de control
+        return true; // si se encendio o apago la alarma, salir de la funcion
         break;
     case 3:                       // control de integrador
         rf_esp_integrador_ctrl(); //
@@ -120,18 +124,18 @@ void rf_esp_integrador_ctrl(void)
     {
     case CTRL_TP_BOTON_UNA_PISTA_AS:
         LOG("\r\n\r\nALARMA ACTIVADA POR RF INTEGRADOR, BOTON UNA PISTA");
-        async_evento_ctrl_av(AL_CTRL_TP_INTEGRADOR); // Llamar a la función para procesar el evento de control
+        //async_evento_ctrl_av(AL_CTRL_TP_INTEGRADOR); // Llamar a la función para procesar el evento de control
         break;
 
     case CTRL_TP_BOTON_RST:
         LOG("\r\n\r\nALARMA ACTIVADA POR RF INTEGRADOR, BOTON RESET");
-        async_evento_ctrl_av(AL_CTRL_TP_INTEGRADOR); // Llamar a la función para procesar el evento de control
+        //async_evento_ctrl_av(AL_CTRL_TP_INTEGRADOR); // Llamar a la función para procesar el evento de control
         revTimerRst();                               // Reiniciar el temporizador de reinicio
         break;
 
     case CTRL_TP_BOTON_INIT_PROG:
         LOG("\r\n\r\nALARMA ACTIVADA POR RF INTEGRADOR, BOTON INIT PROG");
-        async_evento_ctrl_av(AL_CTRL_TP_INTEGRADOR); // Llamar a la función para procesar el evento de control
+        //async_evento_ctrl_av(AL_CTRL_TP_INTEGRADOR); // Llamar a la función para procesar el evento de control
         init_prog_rf = true;                         // Variable para indicar inicio de la programacion via RF
         break;
     }

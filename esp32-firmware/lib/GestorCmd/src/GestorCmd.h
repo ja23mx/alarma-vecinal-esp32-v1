@@ -36,7 +36,7 @@ public:
     variable para indicar si se debe enviar una respuesta JSON, tambien significa que
     se han procesado por lo menos un comando de salida o audio.
     */
-    bool rspJson = false;  
+    bool rspJson = false;
     char jsonBuffer[2048]; // Buffer para almacenar la respuesta JSON
 
 private:
@@ -44,12 +44,13 @@ private:
     bool revisarCMD(const String &cmd, ComandoProcesadoInfo &info);
     void setErrorInfo(ComandoProcesadoInfo &info, const String &cmdStr, int errorCode, const String &errorMsg);
     void generateDeviceJsonResponse(const std::vector<ComandoProcesadoInfo> &responses);
-    
+
     // Método para obtener mensaje de error basado en código
-    const char* getErrorMessage(uint8_t errorCode);
-    
+    const char *getErrorMessage(uint8_t errorCode);
+
     // Método genérico para generar respuestas ACK
     void generateAckResponse(const String &responseType, uint8_t errorCode);
+    void generateAckUpdate(void);
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // Método para procesar un comando D2D  ///////////////////////////////////////////////////////
@@ -64,6 +65,7 @@ private:
     void processEmgCoDi(void);
     void processHandShakeRspJson(void);
     void processCmdJson(void);
+    void processUpdateJson(void);
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // CmdCtrl.cpp ////////////////////////////////////////////////////////////////////////////////
@@ -75,8 +77,8 @@ private:
     void cmd1PistaLedAtm(uint16_t pista, uint16_t ledFade);
     void logInformacionControl();
     void ejecutarInstrucciones(const String &instruccionSalida, const String &instruccionAudio);
-    
-    // Función para generar respuesta de handshake
+
+    // Función para generar respuestas
     void generateHandShakeAckResponse(uint8_t status);
     ///////////////////////////////////////////////////////////////////////////////////////////////
 

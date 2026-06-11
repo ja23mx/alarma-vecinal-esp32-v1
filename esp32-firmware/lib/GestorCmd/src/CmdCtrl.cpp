@@ -10,16 +10,16 @@ void GestorCMD::CtrlAv(uint8_t tipoCtrl)
     String modelo = String(modeloCtrlAVRx.modelo);
     int btn = estadoCompRFAv.btnIndice;
 
-    // Verificar desactivación primero (común para ambos tipos)
-    if ((cmdAudioBusy || cmdSalidasBusy) && btnDesactivacion && (tipoCtrl == AL_CTRL_TP_AV || tipoCtrl == AL_CTRL_TP_GUARDIAN))
+    // Desactivación: ejecutar siempre, sin importar estado del hardware
+    if (btnDesactivacion && (tipoCtrl == AL_CTRL_TP_AV || tipoCtrl == AL_CTRL_TP_GUARDIAN))
     {
         LOG("\r\n\r\nALARMA DESACTIVADA POR CONTROL AV");
         desactivacionAud1Sal1();
         return;
     }
 
-    // Si periféricos están ocupados o es botón de desactivación, salir
-    if (cmdAudioBusy || cmdSalidasBusy || btnDesactivacion && (tipoCtrl == AL_CTRL_TP_AV || tipoCtrl == AL_CTRL_TP_GUARDIAN))
+    // Bloquear nueva activación si hardware ocupado
+    if (cmdAudioBusy || cmdSalidasBusy)
         return;
 
     // Activar alarma (común para ambos tipos)

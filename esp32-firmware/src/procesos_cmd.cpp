@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 #include "ConfigSistema.h"
 #include "LOGSistema.h"
@@ -16,6 +17,7 @@
 SemaphoreHandle_t mutexEventosCtrl = NULL;
 SemaphoreHandle_t mutexEventosMqtt = NULL;
 SemaphoreHandle_t mutexPistaLed = NULL;
+SemaphoreHandle_t mutexCtrlAlarma = NULL;
 
 bool pendienteAsyncEvCtrl = false;
 uint8_t varAsyncEvTipoCtrl;
@@ -25,6 +27,10 @@ bool pendienteAsyncPistaLedAtm = false;
 uint16_t varAsyncPistaLedAtm = 0;
 uint16_t varAsyncPistaLedAtmConfig = 0;
 uint16_t varAsyncPistaLedAtmCarga = 0;
+
+static uint8_t varAsyncEvEstadoAlarma = 0;
+static uint8_t g_estadoAlarma = 0;
+static uint32_t g_tsActivacion = 0;
 
 TaskHandle_t tareaProcesosCmdHandle = NULL;
 
@@ -38,8 +44,9 @@ void crearTareaProcesosCmd(void)
     mutexEventosCtrl = xSemaphoreCreateMutex();
     mutexEventosMqtt = xSemaphoreCreateMutex();
     mutexPistaLed = xSemaphoreCreateMutex();
+    mutexCtrlAlarma = xSemaphoreCreateMutex();
 
-    if (mutexEventosCtrl == NULL || mutexEventosMqtt == NULL || mutexPistaLed == NULL)
+    if (mutexEventosCtrl == NULL || mutexEventosMqtt == NULL || mutexPistaLed == NULL || mutexCtrlAlarma == NULL)
     {
         LOG("\r\n ERROR: No se pudieron crear los mutex");
         return;
@@ -89,6 +96,26 @@ void tareaProcesosCmd(void *pvParameters)
     }
 }
 
+uint8_t get_estado_alarma(void)
+{
+    uint8_t estado = 0;
+    if (mutexCtrlAlarma != NULL && xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        estado = g_estadoAlarma;
+        xSemaphoreGive(mutexCtrlAlarma);
+    }
+    return estado;
+}
+
+void reset_estado_alarma(void)
+{
+    if (mutexCtrlAlarma != NULL && xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        g_estadoAlarma = 0;
+        xSemaphoreGive(mutexCtrlAlarma);
+    }
+}
+
 void call_async_eventos(void)
 {
     async_config_mp3_cmd(); // Llamar a la función para gestionar el MP3
@@ -96,18 +123,19 @@ void call_async_eventos(void)
     async_gestion_salida(); // Llamar a la función para gestionar las salidas
 }
 
-void rev_async_evento_ctrl_av(void)
+void rev_async_evento_ctrl_av(void) // 3434
 {
     bool hayEvento = false;
     uint8_t tipoCtrl = 0;
+    uint8_t estadoAlarma = 0;
 
-    // Bloquear mutex para acceder a variables compartidas
     if (xSemaphoreTake(mutexEventosCtrl, portMAX_DELAY) == pdTRUE)
     {
         if (pendienteAsyncEvCtrl)
         {
             hayEvento = true;
             tipoCtrl = varAsyncEvTipoCtrl;
+            estadoAlarma = varAsyncEvEstadoAlarma;
             pendienteAsyncEvCtrl = false;
         }
         xSemaphoreGive(mutexEventosCtrl);
@@ -116,14 +144,41 @@ void rev_async_evento_ctrl_av(void)
     if (!hayEvento)
         return;
 
+    bool filtrado = false;
+    if (xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        if (estadoAlarma == 1)
+        {
+            if (g_estadoAlarma == 1)
+                filtrado = true;
+            else
+            {
+                g_estadoAlarma = 1;
+                g_tsActivacion = millis();
+            }
+        }
+        else
+        {
+            if (g_estadoAlarma == 0)
+                filtrado = true;
+            else
+                g_estadoAlarma = 0;
+        }
+        xSemaphoreGive(mutexCtrlAlarma);
+    }
+    LOG("\r\n rev_async_ev. estadoAlarma:" + String(estadoAlarma) + " g_est:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
+    if (filtrado)
+        return;
+
     LOG("\r\n\r\nrev_async_evento_ctrl_av.");
     LOG("\r\nTipo de control: " + String(tipoCtrl));
+    LOG("\r\nEstado alarma: " + String(estadoAlarma));
 
     GestorCmd.CtrlAv(tipoCtrl);
     call_async_eventos();
 }
 
-void async_evento_ctrl_av(uint8_t tipoCtrl)
+void async_evento_ctrl_av(uint8_t tipoCtrl, uint8_t estadoAlarma) // 3434
 {
     if (tipoCtrl == 0)
         return;
@@ -140,6 +195,7 @@ void async_evento_ctrl_av(uint8_t tipoCtrl)
         case AL_CTRL_TP_GUARDIAN:
         case AL_CTRL_TP_INTEGRADOR:
             varAsyncEvTipoCtrl = tipoCtrl;
+            varAsyncEvEstadoAlarma = estadoAlarma;
             pendienteAsyncEvCtrl = true;
             break;
         }
@@ -170,10 +226,88 @@ void rev_sync_evento_mqtt(void)
     call_async_eventos();
 }
 
-void sync_evento_mqtt(String payload)
+/**
+ * @brief Procesa payload MQTT entrante: dedup de estado, despacho a GestorCmd o simulación de control RF.
+ *
+ * Si el campo `tipo` es `"cmd-ctrl"`, carga `estadoCompRFAv.btnIndice` desde el campo `btn`
+ * del payload y llama `async_evento_ctrl_av(AL_CTRL_TP_AV, ...)` reproduciendo el mismo
+ * flujo que un control RF físico. En caso contrario, ejecuta el flujo clásico vía
+ * `GestorCmd.process()`.
+ *
+ * @param payload JSON recibido desde el broker MQTT.
+ *
+ * @note Llamado desde la tarea MQTT. No usar delays largos dentro de este contexto.
+ * @warning `estadoCompRFAv` se escribe sin mutex — misma convención que rf_esp.cpp.
+ */
+void sync_evento_mqtt(String payload) // 3434
 {
     if (mutexEventosMqtt == NULL)
         return;
+
+    StaticJsonDocument<512> doc;
+    if (!deserializeJson(doc, payload))
+    {
+        int8_t estadoAlarma = doc["estado-alarma"] | -1;
+        if (estadoAlarma == -1)
+        {
+            int8_t estadoDisp = doc["estado-dispositivo"] | -1;
+            if (estadoDisp != -1)
+                estadoAlarma = estadoDisp;
+        }
+        const char *tipoCmd = doc["tipo"] | "";
+        if (strcmp(tipoCmd, "cmd-ctrl") == 0)
+        {
+            int8_t btnIdx = doc["btn"] | 0;
+            int8_t ctrlIdx = doc["ctrl"] | 0;
+            const char *modeloStr = doc["modelo"] | "";
+            estadoCompRFAv.btnIndice = (uint8_t)btnIdx - 1; // ajuste para manejo interno, comienza en 0
+            estadoCompRFAv.control = (uint8_t)ctrlIdx;
+            if (strlen(modeloStr) > 0)
+            {
+                for (const auto &ctrl : Data.CtrlModelos)
+                {
+                    if (strcmp(ctrl.modelo, modeloStr) == 0)
+                    {
+                        modeloCtrlAVRx = ctrl;
+                        break;
+                    }
+                }
+            }
+            uint8_t activarPerifericos = (estadoCompRFAv.btnIndice + 1 != modeloCtrlAVRx.boton_desactivacion) ? 1 : 0;
+            // LOGF("\r\n[cmd-ctrl] btnIndice:%d boton_desactivacion:%d activarPerifericos:%d modelo:%s", estadoCompRFAv.btnIndice, modeloCtrlAVRx.boton_desactivacion, activarPerifericos, modeloCtrlAVRx.modelo);
+            async_evento_ctrl_av(AL_CTRL_TP_AV, activarPerifericos);
+            return;
+        }
+
+        if (estadoAlarma != -1 && mutexCtrlAlarma != NULL)
+        {
+            bool filtrado = false;
+            if (xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+            {
+                if (estadoAlarma == 1)
+                {
+                    if (g_estadoAlarma == 1)
+                        filtrado = true;
+                    else
+                    {
+                        g_estadoAlarma = 1;
+                        g_tsActivacion = millis();
+                    }
+                }
+                else
+                {
+                    if (g_estadoAlarma == 0)
+                        filtrado = true;
+                    else
+                        g_estadoAlarma = 0;
+                }
+                xSemaphoreGive(mutexCtrlAlarma);
+            }
+            LOG("\r\nsync_evento_mqtt. estadoAlarma:" + String(estadoAlarma) + " g:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
+            if (filtrado)
+                return;
+        }
+    }
 
     GestorCmd.process(payload, CmdOrigen::SRV_EXT);
 

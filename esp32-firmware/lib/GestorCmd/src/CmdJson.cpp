@@ -61,6 +61,51 @@ void GestorCMD::datosJSON(void)
     {
         processEmgCoDi(); // Procesar comandos de emergencia almacenados
     }
+    else if (tipo == "update")
+    {
+        processUpdateJson();
+    }
+}
+
+void GestorCMD::processUpdateJson(void)
+{
+    LOG("\r\n\r\nprocessUpdateJson.");
+
+    String accion = docJson["accion"] | "";
+
+    if (accion == "")
+    {
+        LOG("\r\nError: Campo 'accion' ausente en payload update.");
+        generateAckResponse("ack-update", ERROR_FORMATO_INVALIDO);
+        rspJson = true;
+        return;
+    }
+
+    if (accion == "init")
+    {
+        String url = docJson["url"] | "";
+        if (url.length() > 0 && url.length() < 256)
+        {
+            url.toCharArray(otaUrl, sizeof(otaUrl));
+            otaPendiente = true;
+        }
+        generateAckUpdate();
+        rspJson = true;
+        LOG("\r\nACK update enviado. OTA pendiente para URL: " + url);
+        return;
+    }
+
+    if (accion == "status")
+    {
+        generateAckUpdate();
+        rspJson = true;
+        LOG("\r\nACK update enviado para accion: status");
+        return;
+    }
+
+    LOG("\r\nError: Accion desconocida: " + accion);
+    generateAckResponse("ack-update", ERROR_PARAMETROS_INVALIDOS);
+    rspJson = true;
 }
 
 void GestorCMD::processEmgCoDi(void)

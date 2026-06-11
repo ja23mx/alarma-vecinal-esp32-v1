@@ -1,7 +1,73 @@
 #include "TimeManager.h"
+#include <Ethernet.h>
 
 // Inicialización de la instancia estática
 TimeManager *TimeManager::instance = nullptr;
+
+// ---------------------------------------------------------------------------
+// NTP sobre EthernetUDP — fallback cuando WiFi no está disponible (W5500)
+// ---------------------------------------------------------------------------
+
+static const uint8_t  ETH_NTP_PACKET_SIZE = 48;
+static const uint16_t ETH_NTP_LOCAL_PORT  = 1338;
+static const uint32_t SEVENTY_YEARS   = 2208988800UL; // offset epoch 1900→1970
+
+// time1.google.com — IP fija para evitar DNS
+static const IPAddress NTP_ETH_SERVER(216, 239, 35, 0);
+
+/**
+ * @brief Sincroniza el tiempo vía NTP usando EthernetUDP (W5500).
+ *
+ * Envía un paquete NTP, espera respuesta y llama a UTC.setTime() con el
+ * timestamp recibido. No bloquea más de timeoutSeconds.
+ *
+ * @param timeoutSeconds Tiempo máximo de espera para la respuesta NTP.
+ * @return true si la sincronización fue exitosa.
+ */
+static bool ntpSyncEthernet(uint8_t timeoutSeconds)
+{
+    if (Ethernet.linkStatus() != LinkON)
+        return false;
+
+    EthernetUDP udp;
+    if (!udp.begin(ETH_NTP_LOCAL_PORT))
+        return false;
+
+    uint8_t packet[ETH_NTP_PACKET_SIZE];
+memset(packet, 0, ETH_NTP_PACKET_SIZE);
+    packet[0]  = 0b11100011; // LI=3, VN=4, Mode=3 (cliente)
+    packet[2]  = 6;           // Polling interval
+    packet[3]  = 0xEC;        // Peer clock precision
+    packet[12] = 49;
+    packet[13] = 0x4E;
+    packet[14] = 49;
+    packet[15] = 52;
+
+    udp.beginPacket(NTP_ETH_SERVER, 123);
+    udp.write(packet, ETH_NTP_PACKET_SIZE);
+    udp.endPacket();
+
+    unsigned long start = millis();
+    while (millis() - start < (unsigned long)timeoutSeconds * 1000)
+    {
+        int size = udp.parsePacket();
+        if (size >= ETH_NTP_PACKET_SIZE)
+        {
+            udp.read(packet, ETH_NTP_PACKET_SIZE);
+            udp.stop();
+            uint32_t secsSince1900 = ((uint32_t)packet[40] << 24) |
+                                     ((uint32_t)packet[41] << 16) |
+                                     ((uint32_t)packet[42] <<  8) |
+                                      (uint32_t)packet[43];
+            time_t unixTime = (time_t)(secsSince1900 - SEVENTY_YEARS);
+            UTC.setTime(unixTime);
+            return true;
+        }
+        delay(50);
+    }
+    udp.stop();
+    return false;
+}
 
 /**
  * @brief Constructor privado del singleton TimeManager
@@ -45,16 +111,30 @@ bool TimeManager::init(uint8_t timeout_seconds)
     // Configurar timezone FIJO GMT-6 para México usando formato POSIX
     // CST-6: CST = Central Standard Time, -6 = GMT-6 (sin DST)
     bool posix_success = myTZ.setPosix("CST6");
-    
-    if (posix_success) {
+
+    if (posix_success)
+    {
         Serial.println("[TimeManager] Configurado timezone fijo GMT-6 para México (sin DST)");
-    } else {
+    }
+    else
+    {
         Serial.println("[TimeManager] ERROR: No se pudo configurar timezone POSIX");
         return false;
     }
 
-    // Esperar sincronización con timeout - función GLOBAL de ezTime
-    bool sync_success = waitForSync(timeout_seconds);
+    // Intentar NTP vía Ethernet primero (W5500 — no usa WiFiUDP)
+    bool sync_success = false;
+    if (Ethernet.linkStatus() == LinkON)
+{
+        Serial.println("[TimeManager] Intentando NTP vía Ethernet (W5500)...");
+        sync_success = ntpSyncEthernet(timeout_seconds);
+        if (sync_success)
+            Serial.println("[TimeManager] NTP vía Ethernet exitoso.");
+    }
+
+    // Fallback: NTP vía WiFi (waitForSync usa WiFiUDP internamente)
+    if (!sync_success)
+        sync_success = waitForSync(timeout_seconds);
 
     if (sync_success)
     {
@@ -78,7 +158,9 @@ bool TimeManager::init(uint8_t timeout_seconds)
 }
 
 /**
- * @brief Obtiene timestamp actual en formato ISO8601
+ * @brief Obtiene timestamp actual en formato ISO8601.
+ *        Sintaxis: YYYY-MM-DDTHH:MM:SSZ
+ *        Sintaxis: 2026-04-27T19:40:03Z
  */
 String TimeManager::getTimeISO8601()
 {
@@ -99,7 +181,8 @@ String TimeManager::getTimeISO8601()
     // Generar timestamp según el estado actual
     if (timeStatus() == timeSet)
     {
-        tm = myTZ.dateTime(ISO8601);
+        // tm = myTZ.dateTime(ISO8601);
+        tm = UTC.dateTime("Y-m-d\\TH:i:s") + "Z";
         time_valid = true;
     }
     else
@@ -271,7 +354,7 @@ void TimeManager::updateTimeStatus()
 
     // Verificar timezone fijo GMT-6 para México
     String current_time = myTZ.dateTime(ISO8601);
-    
+
     // Con offset fijo, debe ser siempre GMT-6 (-0600)
     if (!current_time.endsWith("-0600"))
     {
@@ -282,7 +365,7 @@ void TimeManager::updateTimeStatus()
     }
 
     // Con offset manual no hay DST - remover verificación de isDST()
-    
+
     // Si llegamos aquí, todo está bien
     current_status = NTP_SUCCESS;
 }

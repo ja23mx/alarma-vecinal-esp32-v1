@@ -596,3 +596,32 @@ void GestorCMD::generateAckResponse(const String &responseType, uint8_t errorCod
 
     LOG("\r\nACK Response generado (" + responseType + "): " + String(jsonBuffer));
 }
+
+void GestorCMD::generateAckUpdate(void)
+{
+    docJson.clear(); // Limpiar el documento JSON
+
+    // Crear el JSON de respuesta según el formato especificado
+    docJson["dsp"] = Data.numeroSerie;              // Número de serie del dispositivo
+    docJson["type"] = "ack-update";                 //
+    docJson["modelo"] = String(BOARD_MODELO);       //
+    docJson["firmware"] = String(SISTEMA_FIRMWARE); //
+    docJson["version"] = String(SISTEMA_VERSION);
+    docJson["build"] = String(SISTEMA_ETAPA);
+    docJson["fecha"] = String(SISTEMA_DATE);
+
+    size_t len = serializeJson(docJson, jsonBuffer, sizeof(jsonBuffer));
+
+    if (len == 0 && sizeof(jsonBuffer) > 0)
+    {
+        // Crear una respuesta de error genérica si la serialización falla
+        docJson.clear();
+        docJson["dsp"] = Data.numeroSerie;
+        docJson["type"] = "ack-update";
+        docJson["error"] = ERROR_INTERNO;
+        docJson["msg"] = getErrorMessage(ERROR_INTERNO);
+        serializeJson(docJson, jsonBuffer, sizeof(jsonBuffer));
+    }
+
+    LOG("\r\nACK Response generado: " + String(jsonBuffer));
+}

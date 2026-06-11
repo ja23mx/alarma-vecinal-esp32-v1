@@ -6,7 +6,7 @@ NODO/E323A0/CMD
     play lista de 10 y 101 por 30 segundos
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
   "datos": [
     "*SA*01*6:2:30:10:101##",
@@ -26,8 +26,9 @@ NODO/E323A0/CMD
 
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
+  "estado-alarma": 0 o 1,
   "datos": [
     "*SA*01*6:2:30:10:101##",
     "*SD*01*3:2:30##"
@@ -39,8 +40,9 @@ NODO/E323A0/CMD
     de la reproduccion de pista 51
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
+  "estado-alarma": 0 o 1,
   "datos": [
     "*SA*01*1:51:0##",
     "*SD*01*3:2:-1##"
@@ -49,7 +51,7 @@ NODO/E323A0/CMD
 
 *** APAGADO
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "cmd",
   "datos": [
     "*SA*01*0:0:0##",
@@ -67,7 +69,7 @@ ON 1 PISTA
 *******************  SETTINGS  ********************************************************************
 
 {
-  "dsp": "AV1-E323A0",
+  "dsp": "E323A0",
   "tipo": "settings",
   "datos": [
     "setTimer:23"
@@ -104,7 +106,7 @@ respuesta
 ACK RESPUESTA A MQTT
 
 {
-  "dsp": "AV1-EA2C68",
+  "dsp": "EA2C68",
   "tipo": "hd-res",  
   "status": "OK",  
   "params": { 
@@ -116,26 +118,52 @@ ACK RESPUESTA A MQTT
 }
 
 **********************
-ENVIO DE CONTROL ESP32-SERVER
-
+ENVIO DE CONTROL ESP32-SERVER ---
+Tiempo en UTC 0
 {
   "dsp": "EA2C68",
-  "type": "ctrl-av-1",
+  "tipo": "ctrl-av-1",
   "nm-ctrl":23,
   "btn-nm":2,
   "btn-str": "B",
-  "tm": "2025-08-31T21:42:00-0600",
-  "ntp_status": "success"
+  "tm": "2025-08-31T21:42:00Z",
+  "ntp_status": "success",
+  "estado-alarma": 1
 }
 
 ************************
-HEARBEAT
-
+HEARBEAT ---
+Tiempo en UTC 0
 {
   "dsp": "EA2C68",
   "tipo": "hb",
-  "tm": "2025-09-17T12:07:27-0600",
+  "tm": "2025-09-17T12:07:27Z,
   "ntp_status": "success"
 }
 
 ************************
+
+
+
+*********
+encendido via mqtt control 
+
+  Encendido:
+  {
+    "dsp": "E323A0",
+    "tipo": "cmd-ctrl",
+    "modelo": "CTAV1",
+    "btn": 0,
+    "ctrl": 1
+  }
+
+  Apagado:
+  {
+    "dsp": "E323A0",
+    "tipo": "cmd-ctrl",
+    "modelo": "CTAV1",
+    "btn": 3,
+    "ctrl": 1
+  }
+
+*********
