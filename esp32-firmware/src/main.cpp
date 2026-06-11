@@ -44,7 +44,7 @@ void setup()
   LOG("\r\n\r\n\r\n\r\n\r\n\r\n" + String(SISTEMA_FIRMWARE));
   LOG("\r\n" + String(SISTEMA_VERSION) + "\r\n" + String(SISTEMA_ETAPA) + "\r\nTRJ VRS: " + String(TARJETA_VERSION));
   LOG("\r\nFECHA COMPILACION: " + String(SISTEMA_DATE));
-  ENTORNO == 1 ? LOG("\r\nENTORNO DE DESARROLLO\r\n\r\n") : LOG("\r\nENTORNO DE PRODUCCION\r\n\r\n");
+  ENTORNO == 1 ? LOG("\r\nENTORNO DE DESARROLLO.\r\n\r\n") : LOG("\r\nENTORNO DE PRODUCCION.\r\n\r\n");
 
   delay(100); // Esperar 1 segundo para estabilizar el puerto serie
   // Configurar el tiempo de espera del Watchdog a 10 segundos
