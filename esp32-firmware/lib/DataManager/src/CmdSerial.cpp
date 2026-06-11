@@ -260,7 +260,7 @@ static void cmdmqttHandShakeRequest(DataManager *self, const String &params)
     datos["mdl"] = String(BOARD_MODELO);
     datos["frm"] = String(SISTEMA_FIRMWARE);
     datos["vrs"] = String(SISTEMA_VERSION);
-    datos["bld"] = String(SISTEMA_BUILD);
+    datos["bld"] = String(SISTEMA_ETAPA);
     datos["tm-bl"] = String(SISTEMA_DATE);
 
     datos["tm"] = TimeManager::getInstance().getTimeISO8601();
@@ -284,7 +284,7 @@ static void cmdinfoInitServer(DataManager *self, const String &params)
     datos["modelo"] = String(BOARD_MODELO);
     datos["firmware"] = String(SISTEMA_FIRMWARE);
     datos["version"] = String(SISTEMA_VERSION);
-    datos["build"] = String(SISTEMA_BUILD);
+    datos["build"] = String(SISTEMA_ETAPA);
     datos["fecha"] = String(SISTEMA_DATE);
     datos["numSerie"] = self->numeroSerie;
     datos["tamper"] = self->tamper;

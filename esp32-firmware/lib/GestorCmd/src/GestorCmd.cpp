@@ -607,7 +607,7 @@ void GestorCMD::generateAckUpdate(void)
     docJson["modelo"] = String(BOARD_MODELO);       //
     docJson["firmware"] = String(SISTEMA_FIRMWARE); //
     docJson["version"] = String(SISTEMA_VERSION);
-    docJson["build"] = String(SISTEMA_BUILD);
+    docJson["build"] = String(SISTEMA_ETAPA);
     docJson["fecha"] = String(SISTEMA_DATE);
 
     size_t len = serializeJson(docJson, jsonBuffer, sizeof(jsonBuffer));
