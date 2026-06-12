@@ -2,31 +2,27 @@
 
 ## Descripción
 
-Estos archivos automatizan la generación y gestión del archivo binario (.bin) del firmware ESP32, asegurando un nombre estructurado y la copia a una carpeta destino configurable.
-Por defecto la creación del nuevo archivo sera en la locacion `/esp32-bin-files/dev-test`.
+Automatizan la generación y gestión del archivo binario (.bin) del firmware ESP32.
+La versión se lee directamente desde `include/CnfTarjeta.h` (fuente única de verdad),
+eliminando la necesidad de mantener la versión en múltiples lugares.
+
+Cada compilación genera un `.bin` con nombre estructurado, lo copia a `ota/` (último build)
+y archiva una copia permanente en `releases/v{version}/`.
 
 ```
+/esp32-bin-files/
+    /ota/               - Último build compilado (se sobreescribe en cada compilación)
+    /releases/
+        /v0.1.0-beta.1/ - Historial de binarios por versión liberada
+        /v0.1.0/
+        ...
+    COMO-FLASHEAR.md    - Guía de instalación con esptool
 
-/esp32-bin-files/    - Binarios compilados organizados por versión
-    /dev-test/       - Destino de archivos .bin generados, esta carpeta no se sube a git
-    /v0.0.1/         - Firmware versión 0.0.1, esta carpeta si sube a git
-    COMO-FLASHEAR.md - Guía de instalación con esptool y como subir archivos .bin
-
-/esp32-firmware/     - Código fuente del firmware (PlatformIO) 
-    /bin-tools-py/   - Scripts y herramientas para gestionar binarios y configuraciones de builds 
+/esp32-firmware/
+    /bin-tools-py/      - Scripts de gestión de binarios
+    /include/
+        CnfTarjeta.h    - Fuente única de versión del firmware
     ...
-
-/examples
-    ...
-
-/docs/
-    ...    
-
-/meta
-    ...
-
-.gitignore           
-OPEN_WORKSPACE.txt   
 ```
 
 ---
@@ -35,42 +31,70 @@ OPEN_WORKSPACE.txt
 
 ### 1. `bin_build_config.py`
 
-Contiene las variables de configuración:
-- **NAME_BASE**: Nombre base del firmware, por ejemplo, si el proyecto es: esp32-git-template-1 su nombre base es: esp32-GT-TMP-1.
-- **VERSION**: Versión del firmware.
-- **DEST_DIR**: Carpeta destino donde se copiará el archivo .bin generado.
+Contiene las rutas de configuración (relativas a `esp32-firmware/`):
 
-Modifica estos valores para personalizar el nombre y la ubicación del archivo binario.
+- **HEADER_PATH**: Ruta al header `CnfTarjeta.h` desde donde se leen `SISTEMA_FIRMWARE`, `SISTEMA_VERSION` y `SISTEMA_ETAPA`.
+- **OTA_DIR**: Carpeta destino del último build. Se sobreescribe en cada compilación.
+- **RELEASES_DIR**: Carpeta de historial. Se crea una subcarpeta por versión (`v{VERSION}-{ETAPA}`).
 
 ---
 
 ### 2. `bin_build_manager.py`
 
-Script principal que:
-- Lee las variables de configuración desde `bin_build_config.py`.
-- Calcula el número de build incremental.
-- Genera el nombre del archivo .bin con formato:  
-  `esp32-GIT-TMP-1-V0.0.1-B-<build_number>-T-<timestamp>.bin`
-- Copia el archivo .bin generado a la carpeta destino.
-- Se ejecuta automáticamente como script extra en PlatformIO (`extra_scripts`).
+Script principal que se ejecuta automáticamente al compilar. Realiza:
+
+1. Parsea `CnfTarjeta.h` con regex para extraer `SISTEMA_FIRMWARE`, `SISTEMA_VERSION` y `SISTEMA_ETAPA`.
+2. Genera el nombre del binario con el formato:
+   ```
+   {FIRMWARE}-v{VERSION}-{ETAPA}-T.DD.MM.YYYY.HHMMSS-ota.bin
+   ```
+   Ejemplo: `esp32.av-v0.1.0-beta.1-T.11.06.2026.153546HRS-ota.bin`
+3. Elimina el `.bin` anterior en `ota/` y copia el nuevo.
+4. Archiva una copia en `releases/v{VERSION}-{ETAPA}/`.
+5. Genera `manifest.json` en ambas carpetas con los campos:
+   ```json
+   {
+     "firmware": "esp32.av",
+     "version": "0.1.0.beta.1",
+     "fecha": "T.11.06.2026.153546HRS",
+     "file": "esp32.av-v0.1.0-beta.1-T.11.06.2026.153546HRS-ota.bin"
+   }
+   ```
+
+---
+
+## Para cambiar la versión
+
+Editar únicamente `include/CnfTarjeta.h`:
+
+```c
+#define SISTEMA_FIRMWARE "esp32.av"  // Nombre del firmware
+#define SISTEMA_VERSION  "0.1.0"     // Versión semver
+#define SISTEMA_ETAPA    "beta.1"    // Etapa: alpha, beta.1, rc.1, stable
+```
+
+El script toma los valores automáticamente en la siguiente compilación. No hay que modificar ningún otro archivo.
 
 ---
 
 ## Uso
 
-1. Configura los valores en `bin_build_config.py` según tus necesidades.
-2. Asegúrate de que `platformio.ini` incluya la línea:
-   ```
+1. Asegurarse de que `platformio.ini` incluya:
+   ```ini
    extra_scripts = ./bin-tools-py/bin_build_manager.py
    ```
-3. Al compilar el proyecto, el archivo .bin se generará y copiará automáticamente a la carpeta destino con el nombre estructurado.
+2. Compilar el proyecto:
+   ```bash
+   pio run
+   ```
+3. El `.bin` y `manifest.json` se generan automáticamente en `ota/` y `releases/`.
 
 ---
 
 ## Notas
 
-- El número de build se calcula de forma incremental leyendo y actualizando el valor almacenado en el archivo `build_number.txt` ubicado en la misma carpeta que los scripts, asegurando que cada compilación tenga un identificador único y consecutivo.
-- Si cambias la versión, actualiza también la carpeta destino para mantener la organización.
-- Ambos archivos deben permanecer en la carpeta `bin_tools_py` para mantener la estructura recomendada.
-
----
+- El campo `version` en `manifest.json` usa punto como separador (`0.1.0.beta.1`).
+- El nombre del archivo usa guión entre versión y etapa (`v0.1.0-beta.1`).
+- Los tags de git siguen la convención `v{VERSION}-{ETAPA}` (ej. `v0.1.0-beta.1`).
+- La carpeta `ota/` siempre contiene solo el binario más reciente.
+- La carpeta `releases/` acumula versiones y no se sobreescribe.
