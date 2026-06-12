@@ -44,44 +44,76 @@ static void otaEthernet(const char *host, uint16_t port, const char *path)
 
     client.print(String("GET ") + path + " HTTP/1.0\r\nHost: " + host + "\r\nConnection: close\r\n\r\n");
 
-    // Saltar headers HTTP
+    // Parsear headers HTTP: status code + Content-Length
+    int statusCode = 0;
+    long contentLength = 0;
+    bool firstLine = true;
     while (client.connected())
     {
         String line = client.readStringUntil('\n');
-        if (line == "\r" || line.length() == 0)
-            break;
+        if (firstLine)
+        {
+            // "HTTP/1.0 200 OK"
+            int sp = line.indexOf(' ');
+            if (sp >= 0)
+                statusCode = line.substring(sp + 1).toInt();
+            firstLine = false;
+        }
+        line.trim();
+        if (line.length() == 0)
+            break; // fin de headers
+        String lower = line;
+        lower.toLowerCase();
+        if (lower.startsWith("content-length:"))
+            contentLength = line.substring(line.indexOf(':') + 1).toInt();
     }
 
-    if (!Update.begin(UPDATE_SIZE_UNKNOWN))
+    if (statusCode != 200)
     {
-        LOG("\r\nOTA Ethernet: Update.begin() falló.");
+        LOG("\r\nOTA Ethernet: HTTP status " + String(statusCode));
         client.stop();
         return;
     }
 
-    LOG("\r\nOTA Ethernet iniciando. Path: " + String(path) + " Host: " + String(host) + " Port: " + String(port));
+    if (contentLength <= 0)
+    {
+        LOG("\r\nOTA Ethernet: Content-Length inválido (" + String(contentLength) + ").");
+        client.stop();
+        return;
+    }
+
+    if (!Update.begin(contentLength))
+    {
+        LOG("\r\nOTA Ethernet: Update.begin() falló. " + String(Update.errorString()));
+        client.stop();
+        return;
+    }
+
+    LOG("\r\nOTA Ethernet iniciando. tamano: " + String(contentLength) + " Path: " + String(path) + " Host: " + String(host) + " Port: " + String(port));
 
     uint8_t buf[1024];
-    while (client.connected() || client.available())
+    size_t written = 0;
+    while ((client.connected() || client.available()) && written < (size_t)contentLength)
     {
         int n = client.read(buf, sizeof(buf));
         if (n > 0)
         {
             if (Update.write(buf, n) != (size_t)n)
             {
-                LOG("\r\nOTA Ethernet: error en Update.write().");
+                LOG("\r\nOTA Ethernet: error en Update.write(). " + String(Update.errorString()));
                 break;
             }
+            written += (size_t)n;
         }
         yield();
     }
 
     client.stop();
 
-    if (Update.end())
+    if (written == (size_t)contentLength && Update.end())
         LOG("\r\nOTA Ethernet: flash completado.");
     else
-        LOG("\r\nOTA Ethernet: Update.end() falló.");
+        LOG("\r\nOTA Ethernet: Update.end() falló. Escrito " + String(written) + "/" + String(contentLength) + ". " + String(Update.errorString()));
 }
 
 static void otaWiFi(const char *url)
