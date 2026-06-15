@@ -8,23 +8,20 @@
 // ==============================================================================================
 // SELECCIÓN DE VERSIÓN DE TARJETA - DESCOMENTA SOLO UNA OPCIÓN
 // ==============================================================================================
-#define TARJETA_SLT_V1 //
+#define TARJETA_SLT_V_1_0 //
+// #define TARJETA_SLT_V_1_1 //
 
 // ==============================================================================================
 // PINES COMUNES A TODAS LAS TARJETAS
 // ==============================================================================================
-#define BTN_PROG 0   // Pin del botón de programación
-#define LED_STATUS 2 // Pin del LED de estado
-#define LED_ST_ON 1  // Estado del LED encendido
-#define LED_ST_OFF 0 // Estado del LED apagado
-#define RF_RX 4      // Pin de recepción de señales RF
+#define BTN_PROG 0 // Pin del botón de programación
 
 // ==============================================================================================
-// CONFIGURACIÓN ESPECÍFICA POR TARJETA
+// Configuración de pines específicos para cada versión de tarjeta - DESCOMENTA SOLO LA OPCIÓN CORRESPONDIENTE
 // ==============================================================================================
 
-#ifdef TARJETA_SLT_V1
-// TARJETA DDI
+#ifdef TARJETA_SLT_V_1_0
+// TARJETA SLT V1.0
 #define SALIDA_1 33        // Pin de salida 1
 #define AMPLIFICADOR 12    // Pin de control del amplificador
 #define PIN_MP3_UART_RX 16 // Pin de recepción del UART1
@@ -33,34 +30,41 @@
 #define LED_MP3 22         // Pin del LED del MP3
 #define PIN_NEOPIXEL 14    // Pin de Neopixel
 #define PIN_CNF_RED_ADC 39 // Pin de configuración de red
+#define LED_STATUS 2       // Pin del LED de estado
+#define LED_ST_ON 1        // Estado del LED encendido
+#define LED_ST_OFF 0       // Estado del LED apagado
+#define RF_RX 4            // Pin de recepción de señales RF
 // --- Ethernet W5500 SPI ---
 #define W5500_CS_PIN 5       // Chip Select W5500
 #define W5500_RST_PIN 32     // Reset W5500 (GPIO libre en TARJETA_SLT_V1)
 #define W5500_ENTROPY_PIN 36 // Pin ADC flotante para entropía SSLClient
-#define TARJETA_VERSION "TARJETA_SLT_V1"
-#else
-// Si no se define ninguna tarjeta, usar TARJETA_NEGRA por defecto
-#warning "No se ha seleccionado ninguna versión de tarjeta. Usando TARJETA_NEGRA por defecto."
-#define SALIDA_1 27        // Pin de salida 1
-#define AMPLIFICADOR 12    // Pin de control del amplificador
-#define PIN_MP3_UART_RX 12 // Pin de recepción del UART1
-#define PIN_MP3_UART_TX 14 // Pin de transmisión del UART1
-#define PIN_MP3_BUSY 26    // Pin de busy del MP3
-#define LED_MP3 32         // Pin del LED del MP3
-#define PIN_NEOPIXEL 19    // Pin de Neopixel
-#define TARJETA_VERSION "NEGRA_DEFAULT"
+#define TARJETA_VERSION "TARJETA_SLT_V_1_0"
+#endif
+
+#ifdef TARJETA_SLT_V_1_1
+// TARJETA SLT V1.1
+#define RF_RX 4              // Pin de recepción de señales RF
+#define W5500_CS_PIN 5       // Chip Select W5500
+#define AMPLIFICADOR 12      // Pin de control del amplificador
+#define PIN_NEOPIXEL 14      // Pin de Neopixel
+#define LED_MP3 19           // Pin del LED del MP3
+#define PIN_MP3_BUSY 25      // Pin de busy del MP3
+#define LED_STATUS 26        // Pin del LED de estado
+#define PIN_MP3_UART_TX 27   // Pin de transmisión del UART1
+#define SALIDA_1 28          // Pin de salida 1
+#define PIN_MP3_UART_RX 32   // Pin de recepción del UART1
+#define W5500_RST_PIN 33     // Reset W5500 (GPIO libre en TARJETA_SLT_V1)
+#define W5500_ENTROPY_PIN 36 // Pin ADC flotante para entropía SSLClient
+#define PIN_CNF_RED_ADC 39   // Pin de configuración de red
+
+#define LED_ST_ON 1  // Estado del LED encendido
+#define LED_ST_OFF 0 // Estado del LED apagado
+#define TARJETA_VERSION "TARJETA_SLT_V_1_1"
 #endif
 
 // ==============================================================================================
 // VALIDACIÓN DE CONFLICTOS DE PINES
 // ==============================================================================================
-#if (PIN_MP3_UART_RX == AMPLIFICADOR)
-#error "CONFLICTO: PIN_MP3_UART_RX y AMPLIFICADOR usan el mismo pin"
-#endif
-
-/* #if (PIN_NEOPIXEL == PIN_LORA_MISO)
-#error "CONFLICTO: PIN_NEOPIXEL y PIN_LORA_MISO usan el mismo pin"
-#endif */
 
 // Configuración de parámetros BLE
 #define PREFIJO_BLE "AV_"    // Prefijo de red BLE
