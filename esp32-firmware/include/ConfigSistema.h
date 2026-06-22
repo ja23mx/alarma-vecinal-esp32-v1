@@ -154,7 +154,7 @@
 
 #define MQTT_CNF_TM_HB_SG 60             // Tiempo de espera en segungos para el heartbeat MQTT
 #define MQTT_CNF_TM_REV_LOOP_MS 500      // Tiempo de espera en milisegundos para el bucle MQTT
-#define MQTT_CNF_TM_INT_RECONEXION 10000 // Tiempo de espera en milisegundos para la reconexión MQTT
+#define MQTT_CNF_TM_INT_RECONEXION 30000 // Tiempo de espera en milisegundos para la reconexión MQTT
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 

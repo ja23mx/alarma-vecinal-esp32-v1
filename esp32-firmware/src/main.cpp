@@ -140,10 +140,10 @@ void loop()
     }
     else
     {
-      if (millis() - tiempo_wifi > 10000)          // Si no se conecta a la red wifi en 10 segundos
-      {                                            //
+      if (millis() - tiempo_wifi > MQTT_CNF_TM_INT_RECONEXION)
+      {
         conexion_wifi = gestionar_conexion_wifi(); // Inicia la conexión WiFi
-        tiempo_wifi = millis();                    // Almacenar el tiempo de la conexión WiFi
+        tiempo_wifi = millis();
       }
     }
   }

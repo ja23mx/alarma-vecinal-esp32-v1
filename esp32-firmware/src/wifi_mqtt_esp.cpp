@@ -71,6 +71,11 @@ bool mqtt_loop()
     }
 
     // MQTT falló — intentar cambio de medio si el activo no tiene link
+    static unsigned long tsUltimoReconect = 0;
+    if (millis() - tsUltimoReconect < MQTT_CNF_TM_INT_RECONEXION)
+        return false;
+    tsUltimoReconect = millis();
+
     if (_usingEthernet && Ethernet.linkStatus() != LinkON)
     {
         LOG("\r\nEthernet: link caído. Intentando fallback a WiFi...");
