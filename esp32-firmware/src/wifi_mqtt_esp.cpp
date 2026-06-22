@@ -70,24 +70,6 @@ bool mqtt_loop()
         return true;
     }
 
-    // MQTT falló — intentar cambio de medio si el activo no tiene link
-    static unsigned long tsUltimoReconect = 0;
-    if (millis() - tsUltimoReconect < MQTT_CNF_TM_INT_RECONEXION)
-        return false;
-    tsUltimoReconect = millis();
-
-    if (_usingEthernet && Ethernet.linkStatus() != LinkON)
-    {
-        LOG("\r\nEthernet: link caído. Intentando fallback a WiFi...");
-        return gestionar_conexion_wifi();
-    }
-
-    if (!_usingEthernet && WiFi.status() != WL_CONNECTED)
-    {
-        LOG("\r\nWiFi: desconectado. Intentando fallback a Ethernet...");
-        return gestionar_conexion_wifi();
-    }
-
     return false;
 }
 
@@ -220,7 +202,7 @@ static bool initEthernet(void)
 
     LOG("\r\nEthernet: inicializando W5500...");
 
-    if (Ethernet.begin(mac) == 0)
+    if (Ethernet.begin(mac, 8000, 4000) == 0)
     {
         if (Ethernet.hardwareStatus() == EthernetNoHardware)
             LOG("\r\nEthernet: W5500 no detectado.");

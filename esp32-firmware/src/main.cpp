@@ -123,7 +123,9 @@ void loop()
         conexion_mqtt = mqtt_loop(); // Llamar a la función de bucle MQTT
 
         if (conexion_mqtt)
-          blink_led_mqtt(0); // Llamar a la función de parpadeo del LED MQTT
+          blink_led_mqtt(0);      // Llamar a la función de parpadeo del LED MQTT
+        else
+          conexion_wifi = false;  // Forzar reconexión por rama else
 
         en_loop_mqtt = false;   // Desactivar el bucle MQTT
         tiempo_mqtt = millis(); // Almacenar el tiempo actual
@@ -144,6 +146,8 @@ void loop()
       {
         conexion_wifi = gestionar_conexion_wifi(); // Inicia la conexión WiFi
         tiempo_wifi = millis();
+        if (conexion_wifi)
+          en_loop_mqtt = true; // Iniciar MQTT sin esperar el timer
       }
     }
   }
