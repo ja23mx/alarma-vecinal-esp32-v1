@@ -142,8 +142,8 @@ void async_mqtt_msg_ctrl_alarma(void)
     switch (modeloCtrlAVRx.configuracion) // Obtener la configuración del control
     {
     case 1: // alerta vecinal
-        if (envio_async_mqtt_msg_ctrl_alarma)
-            return; // Si el mensaje ya fue enviado, salir
+        if (envio_async_mqtt_msg_ctrl_alarma && mqttManager.conectado)
+            return; // Si hay un mensaje pendiente de envío y hay conexión, salir
 
         uint8_t estado_alarma = get_estado_alarma();
 
