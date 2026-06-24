@@ -60,6 +60,7 @@ public:
     bool cargarDatosDspRF(void);
     bool busqDspRF(unsigned long senalRF);
     uint16_t espacioVacioDspRF(void);
+    bool actualizarDspRF(uint16_t num_ctrl, bool has_sig, unsigned long sig, bool has_status, uint8_t status);
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // Métodos de archivos en LittleFS ////////////////////////////////////////////////////////////

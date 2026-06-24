@@ -148,7 +148,7 @@ void cnfSalidas(void)
 
     LOG("\r\n\r\ngestionarSalidas()");
 
-    bool config_ok; // Variable para verificar la configuración
+    bool config_ok = false; // Variable para verificar la configuración
 
     for (const auto &comando : infoComandosSalidas) // Iterar sobre los comandos de salida
     {
@@ -164,7 +164,7 @@ void cnfSalidas(void)
             {
                 uint8_t numSalida = cmdSalidaData.numPeriferico.toInt(); // Convertir el número de salida a entero
                 // salida fuera de rango
-                if (numSalida > 0 || numSalida <= GST_SALIDA_NUM_PRF)
+                if (numSalida > 0 && numSalida <= GST_SALIDA_NUM_PRF)
                 {
                     int configuracion, carga; // configura las variables de configuración, carga y tiempo
                     long time;                // Inicializar el tiempo a 0
@@ -183,6 +183,7 @@ void cnfSalidas(void)
                         // (cmdAudioBusy= false) se apagan las salidas
                         if (time == -1)
                         {
+                            config_ok = true;
                             time_limite_sal_arr[numSalida] = -1;
                         }
                         // time 0 -> es tiempo maximo, time > 0 -> es tiempo en segundos
@@ -247,6 +248,8 @@ void cnfSalidas(void)
 
                             LOG("\r\n\r\nSalida " + String(numSalida + 1) + " PWM. TM: " + String(time_limite_sal_arr[numSalida]) +
                                 " Carga: " + String(carga) + " Duty: " + String(dutyCycle)); // Mensaje de salida PWM
+
+                            cmdSalidasBusy = true;
                         }
                         break;
                     ///////////////// FADE  ///////////////////////////

@@ -180,6 +180,13 @@ bool MqttTools::mqttReconnect()
     unsigned long start = millis();
     while (!_activeClient->connected())
     {
+        if (_useEthernet && Ethernet.linkStatus() != LinkON)
+        {
+            _sslEthClient.stop();
+            LOG("\r\nEthernet: link caído durante reconexión MQTT.");
+            return false;
+        }
+
         LOG("\r\nIntentando conectar a MQTT...");
 
         // Fix SSLClient: stop() limpia m_write_error antes de cada intento TLS

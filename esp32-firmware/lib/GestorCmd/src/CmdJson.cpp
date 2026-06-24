@@ -65,6 +65,10 @@ void GestorCMD::datosJSON(void)
     {
         processUpdateJson();
     }
+    else if (tipo == "mem")
+    {
+        processMemJson();
+    }
 }
 
 void GestorCMD::processUpdateJson(void)

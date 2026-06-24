@@ -70,19 +70,6 @@ bool mqtt_loop()
         return true;
     }
 
-    // MQTT falló — intentar cambio de medio si el activo no tiene link
-    if (_usingEthernet && Ethernet.linkStatus() != LinkON)
-    {
-        LOG("\r\nEthernet: link caído. Intentando fallback a WiFi...");
-        return gestionar_conexion_wifi();
-    }
-
-    if (!_usingEthernet && WiFi.status() != WL_CONNECTED)
-    {
-        LOG("\r\nWiFi: desconectado. Intentando fallback a Ethernet...");
-        return gestionar_conexion_wifi();
-    }
-
     return false;
 }
 
@@ -142,8 +129,8 @@ void async_mqtt_msg_ctrl_alarma(void)
     switch (modeloCtrlAVRx.configuracion) // Obtener la configuración del control
     {
     case 1: // alerta vecinal
-        if (envio_async_mqtt_msg_ctrl_alarma)
-            return; // Si el mensaje ya fue enviado, salir
+        if (envio_async_mqtt_msg_ctrl_alarma && mqttManager.conectado)
+            return; // Si hay un mensaje pendiente de envío y hay conexión, salir
 
         uint8_t estado_alarma = get_estado_alarma();
 
@@ -215,7 +202,7 @@ static bool initEthernet(void)
 
     LOG("\r\nEthernet: inicializando W5500...");
 
-    if (Ethernet.begin(mac) == 0)
+    if (Ethernet.begin(mac, 8000, 4000) == 0)
     {
         if (Ethernet.hardwareStatus() == EthernetNoHardware)
             LOG("\r\nEthernet: W5500 no detectado.");
