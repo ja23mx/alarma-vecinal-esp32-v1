@@ -37,6 +37,15 @@ Broker → topic cmd → MqttTools::loop()
 | `wifi`   | `Data.redesGuardadas` (recargado tras escritura)                                | `NAME_SPACE_WIFI`      |
 | `rf`     | `Data.controlValues`                                                            | `NAME_SPACE_CTRL_DATA` |
 
+## Topics MQTT
+
+| Dirección             | Topic                                      |
+| --------------------- | ------------------------------------------ |
+| Enviar al dispositivo | `AV/<ENTORNO>/NODO/<num_serie>/CMD/`       |
+| Recibir respuesta     | `AV/<ENTORNO>/NODO/<num_serie>/ACK/`       |
+
+`<ENTORNO>` = `DEV` o `PROD` según `ConfigSistema.h`.
+
 ## Formato del ACK
 
 ```json

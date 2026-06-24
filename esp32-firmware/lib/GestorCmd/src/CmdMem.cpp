@@ -256,8 +256,35 @@ void GestorCMD::writeMemRF(void)
             bool has_status = item.containsKey("status");
             unsigned long sig = has_sig ? item["sig"].as<unsigned long>() : 0;
             uint8_t sts = has_status ? item["status"].as<uint8_t>() : 0;
+
             if (!Data.actualizarDspRF(num, has_sig, sig, has_status, sts))
-                ok = false;
+            {
+                // num no existe — insertar si viene id_ct + sig
+                String id_ct_str = item["id_ct"] | "";
+                if (id_ct_str.length() > 0 && has_sig)
+                {
+                    char id_ct = id_ct_str[0];
+                    const char *nombre = nullptr;
+                    for (const auto &modelo : Data.CtrlModelos)
+                    {
+                        if (modelo.id_cnf_ctrl == id_ct)
+                        {
+                            nombre = modelo.nombre;
+                            break;
+                        }
+                    }
+                    if (nombre != nullptr)
+                    {
+                        uint8_t add_status = has_status ? sts : 1;
+                        if (!Data.guardarDspRFFull(nombre, num, add_status, sig))
+                            ok = false;
+                    }
+                    else
+                        ok = false;
+                }
+                else
+                    ok = false;
+            }
         }
     }
     else

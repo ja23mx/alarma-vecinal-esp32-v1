@@ -1,10 +1,11 @@
 # MQTT Memory R/W — How to Use
 
-Topics (entorno DEV):
-- **Enviar al dispositivo:** `AV/DEV/<num_serie>/cmd`
-- **Recibir respuesta:** `AV/DEV/<num_serie>/ack`
+Topics:
+- **Enviar al dispositivo:** `AV/<ENTORNO>/NODO/<num_serie>/CMD/`
+- **Recibir respuesta:** `AV/<ENTORNO>/NODO/<num_serie>/ACK/`
 
-Reemplazar `<num_serie>` con el número de serie del dispositivo (ej. `A1B2C3`).
+Reemplazar `<ENTORNO>` con `DEV` o `PROD` según el entorno activo en `ConfigSistema.h`.
+Reemplazar `<num_serie>` con el número de serie del dispositivo (ej. `7058B0`).
 
 ---
 
@@ -254,7 +255,9 @@ Modifica la señal y/o el status de controles existentes identificados por su `n
 - `num`: requerido — número de control a modificar (obtenido del `read rf`)
 - `sig`: opcional — nueva señal RF base
 - `status`: opcional — habilita (`1`) o deshabilita (`0`) el control
-- `id_ct` no se modifica; para cambiar de modelo usar `del` + `add`
+- `id_ct`: opcional — si el `num` no existe y se provee `id_ct` + `sig`, inserta el control en ese slot (upsert)
+- Si el `num` no existe y no viene `id_ct`, responde `status: 1`
+- `id_ct` no se modifica en controles existentes; para cambiar de modelo usar `del` + `add`
 - Soporta array para actualizar varios controles en un solo mensaje
 
 **Response:**
