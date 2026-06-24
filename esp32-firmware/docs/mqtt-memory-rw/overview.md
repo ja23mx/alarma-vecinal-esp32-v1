@@ -57,6 +57,7 @@ Para soportar hasta 100 controles sin exceder el buffer MQTT de 2048 bytes, la l
 
 ## RF write — cómo funciona
 
+### op: add
 1. El payload envía `id_ct` (letra A–Z asignada al modelo en NVS)
 2. `writeMemRF()` busca el `nombre` del modelo en `Data.CtrlModelos` por `id_ct`
 3. Para cada señal: `Data.espacioVacioDspRF()` asigna el número de control libre
@@ -64,6 +65,13 @@ Para soportar hasta 100 controles sin exceder el buffer MQTT de 2048 bytes, la l
 5. El `status` al registrar siempre es `1` (habilitado)
 
 Los `id_ct` disponibles se obtienen leyendo RF (campo `modelos` en página 0).
+
+### op: update
+1. El payload envía un array de objetos con `num` (requerido), `sig` y/o `status` (opcionales)
+2. `writeMemRF()` localiza el control en `Data.controlValues` por `num`
+3. Si `sig` está presente, reemplaza la señal; si `status` está presente, actualiza el flag
+4. Persiste con `Data.actualizarDspRF()` — modifica el tuple en RAM y sobreescribe en NVS sin `addKey`
+5. `status: 1` en el ACK si algún `num` no existe o falla la escritura en NVS
 
 ## WiFi write — sincronización RAM
 

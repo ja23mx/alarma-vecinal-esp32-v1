@@ -232,6 +232,40 @@ Registrar múltiples señales del mismo modelo en un solo mensaje:
 
 ---
 
+## Actualizar controles RF
+
+Modifica la señal y/o el status de controles existentes identificados por su `num`.
+
+**Request:**
+```json
+{
+  "dsp": "A1B2C3",
+  "tipo": "mem",
+  "accion": "write",
+  "target": "rf",
+  "op": "update",
+  "datos": [
+    { "num": 1, "sig": 99887766 },
+    { "num": 5, "sig": 11223344, "status": 0 }
+  ]
+}
+```
+
+- `num`: requerido — número de control a modificar (obtenido del `read rf`)
+- `sig`: opcional — nueva señal RF base
+- `status`: opcional — habilita (`1`) o deshabilita (`0`) el control
+- `id_ct` no se modifica; para cambiar de modelo usar `del` + `add`
+- Soporta array para actualizar varios controles en un solo mensaje
+
+**Response:**
+```json
+{ "dsp": "A1B2C3", "tipo": "ack-mem", "target": "rf", "status": 0 }
+```
+
+`status: 1` si algún `num` no existe o falla la escritura en NVS.
+
+---
+
 ## Códigos de status
 
 | status | Significado |

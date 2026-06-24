@@ -1002,3 +1002,62 @@ uint16_t DataManager::espacioVacioDspRF(void)
     LOGF("\r\n\r\nEspacio vacio encontrado: %d", controlNumbers.back() + 1);
     return controlNumbers.back() + 1;
 }
+
+bool DataManager::actualizarDspRF(uint16_t num_ctrl, bool has_sig, unsigned long sig, bool has_status, uint8_t status)
+{
+    // Buscar la entrada en RAM por num_ctrl
+    auto it = controlValues.end();
+    for (auto iter = controlValues.begin(); iter != controlValues.end(); ++iter)
+    {
+        if (std::get<1>(*iter) == num_ctrl)
+        {
+            it = iter;
+            break;
+        }
+    }
+
+    if (it == controlValues.end())
+    {
+        LOGF("\r\nactualizarDspRF: num %d no encontrado.", num_ctrl);
+        return false;
+    }
+
+    char id_ct = std::get<0>(*it);
+    uint8_t cur_status = has_status ? status : std::get<2>(*it);
+    unsigned long cur_sig = std::get<3>(*it);
+
+    if (has_sig)
+    {
+        // Aplicar bits_limpieza igual que en guardarDspRFFull
+        for (const auto &modelo : CtrlModelos)
+        {
+            if (modelo.id_cnf_ctrl == id_ct)
+            {
+                unsigned long mask = (1UL << modelo.bits_limpieza) - 1;
+                cur_sig = sig & ~mask;
+                break;
+            }
+        }
+    }
+
+    // Actualizar tuple en RAM
+    *it = std::make_tuple(id_ct, num_ctrl, cur_status, cur_sig);
+
+    // Sobreescribir en NVS (putString overwrite, addKey no necesario)
+    char key[10];
+    snprintf(key, sizeof(key), "DSRF%03d", num_ctrl);
+
+    char configuracion[30];
+    snprintf(configuracion, sizeof(configuracion), "%c,%d,%lu,", id_ct, cur_status, cur_sig);
+
+    if (!nvsData.begin(NAME_SPACE_CTRL_DATA, false))
+    {
+        LOG("\r\nactualizarDspRF: error abriendo NVS.");
+        return false;
+    }
+    nvsData.putString(key, configuracion);
+    nvsData.end();
+
+    LOGF("\r\nactualizarDspRF ok. num: %d sig: %lu status: %d", num_ctrl, cur_sig, cur_status);
+    return true;
+}

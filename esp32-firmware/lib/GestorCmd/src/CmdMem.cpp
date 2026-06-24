@@ -241,6 +241,25 @@ void GestorCMD::writeMemRF(void)
                 ok = false;
         }
     }
+    else if (op == "update")
+    {
+        JsonArray items = docJson["datos"].as<JsonArray>();
+        for (JsonObject item : items)
+        {
+            uint16_t num = item["num"] | 0;
+            if (num == 0)
+            {
+                ok = false;
+                continue;
+            }
+            bool has_sig = item.containsKey("sig");
+            bool has_status = item.containsKey("status");
+            unsigned long sig = has_sig ? item["sig"].as<unsigned long>() : 0;
+            uint8_t sts = has_status ? item["status"].as<uint8_t>() : 0;
+            if (!Data.actualizarDspRF(num, has_sig, sig, has_status, sts))
+                ok = false;
+        }
+    }
     else
     {
         ok = false;
