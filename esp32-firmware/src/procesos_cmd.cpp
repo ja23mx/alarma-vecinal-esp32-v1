@@ -111,6 +111,7 @@ void reset_estado_alarma(void)
 {
     if (mutexCtrlAlarma != NULL && xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
     {
+        // Serial.println("\r\n\r\nreset_estado_alarma. g_estadoAlarma: 0");
         g_estadoAlarma = 0;
         xSemaphoreGive(mutexCtrlAlarma);
     }
