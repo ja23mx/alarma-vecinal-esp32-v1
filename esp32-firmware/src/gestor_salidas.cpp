@@ -7,6 +7,7 @@
 #include "LogSistema.h"
 #include "VariablesGlobales.h"
 #include "GestorCmd.h"
+#include "procesos_cmd.h"
 
 #define MAX_DUTY_CYCLE 255
 #define LEDC_TIMER LEDC_TIMER_0
@@ -116,6 +117,7 @@ void revTimerSalida(void)
                 // LOG("\r\n\r\nSalida " + String(i + 1) + " apagada por tiempo de espera..."); // Mensaje de salida apagada por tiempo de espera
 
                 cmdSalidasBusy = false; // Reiniciar el estado del comando de salida
+                reset_estado_alarma();
             }
         }
         else if (config_sal_arr[i] == 3) // Si la salida está configurada como FADE
@@ -133,6 +135,7 @@ void revTimerSalida(void)
             {
                 apagar_salida_fade(i);  // Apagar la salida si el tiempo de espera ha pasado
                 cmdSalidasBusy = false; // Reiniciar el estado del comando de salida
+                reset_estado_alarma();
             }
             // revision de pin para fade
             else

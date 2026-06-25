@@ -321,6 +321,7 @@ void loop_1_pista_cmd(void)
     }
 
     mp3_amplificador_off();
+    reset_estado_alarma();
 }
 
 void async_ejec_pista_prueba_pendiente(void)
