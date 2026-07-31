@@ -31,6 +31,7 @@ uint16_t varAsyncPistaLedAtmCarga = 0;
 static uint8_t varAsyncEvEstadoAlarma = 0;
 static uint8_t g_estadoAlarma = 0;
 static uint32_t g_tsActivacion = 0;
+static bool g_alarmaPendienteAck = false;
 
 TaskHandle_t tareaProcesosCmdHandle = NULL;
 
@@ -51,6 +52,9 @@ void crearTareaProcesosCmd(void)
         LOG("\r\n ERROR: No se pudieron crear los mutex");
         return;
     }
+
+    // Sembrar la bandera de auditoria desde NVS (sobrevive a un reinicio)
+    g_alarmaPendienteAck = (Data.alarmaPendienteAck != 0);
 
     // Crear la tarea
     xTaskCreate(
@@ -117,6 +121,31 @@ void reset_estado_alarma(void)
     }
 }
 
+bool get_alarma_pendiente_ack(void)
+{
+    bool pendiente = false;
+    if (mutexCtrlAlarma != NULL && xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        pendiente = g_alarmaPendienteAck;
+        xSemaphoreGive(mutexCtrlAlarma);
+    }
+    return pendiente;
+}
+
+void ack_alarma_pendiente(void)
+{
+    bool habiaPendiente = false;
+    if (mutexCtrlAlarma != NULL && xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
+    {
+        habiaPendiente = g_alarmaPendienteAck;
+        g_alarmaPendienteAck = false;
+        xSemaphoreGive(mutexCtrlAlarma);
+    }
+
+    if (habiaPendiente)
+        Data.setAlarmaPendienteAck(0); // persistir fuera del mutex, no bloquear otras tareas durante la escritura a flash
+}
+
 void call_async_eventos(void)
 {
     async_config_mp3_cmd(); // Llamar a la función para gestionar el MP3
@@ -146,6 +175,7 @@ void rev_async_evento_ctrl_av(void) // 3434
         return;
 
     bool filtrado = false;
+    bool nuevaActivacion = false;
     if (xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         if (estadoAlarma == 1)
@@ -156,6 +186,8 @@ void rev_async_evento_ctrl_av(void) // 3434
             {
                 g_estadoAlarma = 1;
                 g_tsActivacion = millis();
+                g_alarmaPendienteAck = true;
+                nuevaActivacion = true;
             }
         }
         else
@@ -167,6 +199,8 @@ void rev_async_evento_ctrl_av(void) // 3434
         }
         xSemaphoreGive(mutexCtrlAlarma);
     }
+    if (nuevaActivacion)
+        Data.setAlarmaPendienteAck(1); // persistir fuera del mutex, no bloquear otras tareas durante la escritura a flash
     LOG("\r\n rev_async_ev. estadoAlarma:" + String(estadoAlarma) + " g_est:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
     if (filtrado)
         return;
@@ -283,6 +317,7 @@ void sync_evento_mqtt(String payload) // 3434
         if (estadoAlarma != -1 && mutexCtrlAlarma != NULL)
         {
             bool filtrado = false;
+            bool nuevaActivacion = false;
             if (xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
             {
                 if (estadoAlarma == 1)
@@ -293,6 +328,8 @@ void sync_evento_mqtt(String payload) // 3434
                     {
                         g_estadoAlarma = 1;
                         g_tsActivacion = millis();
+                        g_alarmaPendienteAck = true;
+                        nuevaActivacion = true;
                     }
                 }
                 else
@@ -304,6 +341,8 @@ void sync_evento_mqtt(String payload) // 3434
                 }
                 xSemaphoreGive(mutexCtrlAlarma);
             }
+            if (nuevaActivacion)
+                Data.setAlarmaPendienteAck(1); // persistir fuera del mutex, no bloquear otras tareas durante la escritura a flash
             LOG("\r\nsync_evento_mqtt. estadoAlarma:" + String(estadoAlarma) + " g:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
             if (filtrado)
                 return;

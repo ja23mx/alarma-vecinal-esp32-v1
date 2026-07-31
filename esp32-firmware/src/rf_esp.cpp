@@ -82,8 +82,11 @@ bool rf_esp_nv_dato(void)
     {
     // CONTROL ALARMA VECINAL
     case 1: // alerta vecinal
-            // estadoCompRFAv.btnIndice 0:2 -> Boton A:C, 3 -> Boton D
-        estadoCompRFAv.btnIndice != 3 ? activarPerifericos = 1 : activarPerifericos = 0;
+            // activarPerifericos = 0 si el boton presionado es el de desactivacion del modelo cargado
+        activarPerifericos = ((estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion) ? 1 : 0;
+        LOGF("\r\n[RF-DIAG] btnIndice:%d boton_desactivacion:%d activarPerifericos:%d g_estadoAlarma:%d filtradoPredicho:%d",
+             estadoCompRFAv.btnIndice, modeloCtrlAVRx.boton_desactivacion, activarPerifericos, get_estado_alarma(),
+             (activarPerifericos == get_estado_alarma()) ? 1 : 0);
         async_mqtt_msg_ctrl_alarma();                            // Enviar mensaje MQTT de control de alarma
         async_evento_ctrl_av(AL_CTRL_TP_AV, activarPerifericos); // Llamar a la función para procesar el evento de control
         return true;                                             // si se encendio o apago la alarma, salir de la funcion

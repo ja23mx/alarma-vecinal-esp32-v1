@@ -38,6 +38,7 @@ public:
     bool setPerifericos(uint8_t tipo, uint8_t valor);
     bool setTimerAlarma(uint16_t timer);
     bool setTamper(uint8_t habilitacion);
+    bool setAlarmaPendienteAck(uint8_t valor);
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // Métodos de comando serial //////////////////////////////////////////////////////////////////
@@ -84,6 +85,7 @@ public:
     uint8_t perifericos[4];  // Configuración de Periféricos (RF, WIFI, VOZ, PERIFONEO)
     uint16_t timerAlarma;    // Timer de Alarma (0-600)
     uint8_t tamper;          // Habilitación de Tamper (0 o 1)
+    uint8_t alarmaPendienteAck; // Bandera de auditoria: activacion sin reconocer (0 o 1)
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // Configuración de controles /////////////////////////////////////////////////////////////////

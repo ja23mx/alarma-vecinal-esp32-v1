@@ -30,7 +30,8 @@ bool DataManager::cargarConfig(void)
         {"cnfVOZ", &this->perifericos[2], sizeof(this->perifericos[2]), false},
         {"confPER", &this->perifericos[3], sizeof(this->perifericos[3]), false},
         {"timerAlarma", &this->timerAlarma, sizeof(this->timerAlarma), false},
-        {"enTamper", &this->tamper, sizeof(this->tamper), false}};
+        {"enTamper", &this->tamper, sizeof(this->tamper), false},
+        {"alarmaAck", &this->alarmaPendienteAck, sizeof(this->alarmaPendienteAck), false}};
 
     // Cargar configuraciones desde NVS
     for (const auto &entry : entries)

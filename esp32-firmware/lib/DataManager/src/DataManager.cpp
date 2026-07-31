@@ -22,6 +22,7 @@ DataManager::DataManager()
     memset(perifericos, 0, sizeof(perifericos));
     timerAlarma = 0;
     tamper = 0;
+    alarmaPendienteAck = 0;
 }
 
 // Inicializa LittleFS y otras configuraciones necesarias
@@ -320,6 +321,34 @@ bool DataManager::setTamper(uint8_t habilitacion)
     nvsData.putUChar("enTamper", this->tamper);
 
     // Cerrar el espacio de nombres después de guardar los datos
+    nvsData.end();
+
+    return true;
+}
+
+/**
+ * @brief Configura la bandera de auditoria de activacion sin reconocer.
+ *
+ * @param valor 0 = sin pendiente, 1 = activacion pendiente de ack.
+ * @return true si la configuración fue exitosa, false si hubo un error.
+ */
+bool DataManager::setAlarmaPendienteAck(uint8_t valor)
+{
+    if (valor > 1)
+    {
+        LOG("\r\nError: El valor de alarmaPendienteAck debe ser 0 o 1.");
+        return false;
+    }
+    this->alarmaPendienteAck = valor;
+
+    if (!nvsData.begin(NAME_SPACE_CNF, false))
+    {
+        LOG("\r\nError al abrir el espacio de nombres.");
+        return false;
+    }
+
+    nvsData.putUChar("alarmaAck", this->alarmaPendienteAck);
+
     nvsData.end();
 
     return true;
