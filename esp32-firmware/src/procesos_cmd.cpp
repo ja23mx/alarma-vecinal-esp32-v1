@@ -53,8 +53,9 @@ void crearTareaProcesosCmd(void)
         return;
     }
 
-    // Sembrar la bandera de auditoria desde NVS (sobrevive a un reinicio)
-    g_alarmaPendienteAck = (Data.alarmaPendienteAck != 0);
+    // Sembrar la bandera de auditoria desde NVS (get-or-create: crea la clave si no existe aun)
+    g_alarmaPendienteAck = (Data.getAlarmaPendienteAck() != 0);
+    Serial.println("\r\n\r\n[PROCESOS_CMD.CPP] g_alarmaPendienteAck: " + String(g_alarmaPendienteAck));
 
     // Crear la tarea
     xTaskCreate(
@@ -142,6 +143,8 @@ void ack_alarma_pendiente(void)
         xSemaphoreGive(mutexCtrlAlarma);
     }
 
+    LOG("\r\n[CANDADO-DIAG] ack_alarma_pendiente. habiaPendiente:" + String(habiaPendiente));
+
     if (habiaPendiente)
         Data.setAlarmaPendienteAck(0); // persistir fuera del mutex, no bloquear otras tareas durante la escritura a flash
 }
@@ -176,11 +179,19 @@ void rev_async_evento_ctrl_av(void) // 3434
 
     bool filtrado = false;
     bool nuevaActivacion = false;
+    bool bloqueadoPorCandado = false;
     if (xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
     {
         if (estadoAlarma == 1)
         {
-            if (g_estadoAlarma == 1)
+            if (g_alarmaPendienteAck)
+            {
+                // Candado: hay una activacion previa sin reconocer por el Guardian.
+                // Bloquea CUALQUIER nueva activacion, sin importar g_estadoAlarma actual.
+                filtrado = true;
+                bloqueadoPorCandado = true;
+            }
+            else if (g_estadoAlarma == 1)
                 filtrado = true;
             else
             {
@@ -201,7 +212,13 @@ void rev_async_evento_ctrl_av(void) // 3434
     }
     if (nuevaActivacion)
         Data.setAlarmaPendienteAck(1); // persistir fuera del mutex, no bloquear otras tareas durante la escritura a flash
-    LOG("\r\n rev_async_ev. estadoAlarma:" + String(estadoAlarma) + " g_est:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
+    LOG("\r\n[CANDADO-DIAG] rev_async_ev. estadoAlarma:" + String(estadoAlarma) + " g_est:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado) + " bloqueadoPorCandado:" + String(bloqueadoPorCandado));
+
+    // El ack del Guardian no depende de si hubo cambio fisico de estado (filtrado) -
+    // debe limpiar la bandera de auditoria siempre que llegue un evento del Guardian.
+    if (tipoCtrl == AL_CTRL_TP_GUARDIAN)
+        ack_alarma_pendiente();
+
     if (filtrado)
         return;
 
@@ -318,11 +335,18 @@ void sync_evento_mqtt(String payload) // 3434
         {
             bool filtrado = false;
             bool nuevaActivacion = false;
+            bool bloqueadoPorCandado = false;
             if (xSemaphoreTake(mutexCtrlAlarma, pdMS_TO_TICKS(100)) == pdTRUE)
             {
                 if (estadoAlarma == 1)
                 {
-                    if (g_estadoAlarma == 1)
+                    if (g_alarmaPendienteAck)
+                    {
+                        // Candado: hay una activacion previa sin reconocer por el Guardian.
+                        filtrado = true;
+                        bloqueadoPorCandado = true;
+                    }
+                    else if (g_estadoAlarma == 1)
                         filtrado = true;
                     else
                     {
@@ -343,7 +367,7 @@ void sync_evento_mqtt(String payload) // 3434
             }
             if (nuevaActivacion)
                 Data.setAlarmaPendienteAck(1); // persistir fuera del mutex, no bloquear otras tareas durante la escritura a flash
-            LOG("\r\nsync_evento_mqtt. estadoAlarma:" + String(estadoAlarma) + " g:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado));
+            LOG("\r\n[CANDADO-DIAG] sync_evento_mqtt. estadoAlarma:" + String(estadoAlarma) + " g:" + String(g_estadoAlarma) + " filtrado:" + String(filtrado) + " bloqueadoPorCandado:" + String(bloqueadoPorCandado));
             if (filtrado)
                 return;
         }

@@ -84,16 +84,30 @@ bool rf_esp_nv_dato(void)
     case 1: // alerta vecinal
             // activarPerifericos = 0 si el boton presionado es el de desactivacion del modelo cargado
         activarPerifericos = ((estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion) ? 1 : 0;
-        LOGF("\r\n[RF-DIAG] btnIndice:%d boton_desactivacion:%d activarPerifericos:%d g_estadoAlarma:%d filtradoPredicho:%d",
-             estadoCompRFAv.btnIndice, modeloCtrlAVRx.boton_desactivacion, activarPerifericos, get_estado_alarma(),
-             (activarPerifericos == get_estado_alarma()) ? 1 : 0);
+        {
+            uint8_t estadoAlarmaActual = get_estado_alarma();
+            bool ackPendiente = get_alarma_pendiente_ack();
+            bool filtradoPredicho = (activarPerifericos == 1)
+                                        ? (ackPendiente || (estadoAlarmaActual == 1))
+                                        : (estadoAlarmaActual == 0);
+            LOGF("\r\n[RF-DIAG] btnIndice:%d boton_desactivacion:%d activarPerifericos:%d g_estadoAlarma:%d alarmaPendienteAck:%d filtradoPredicho:%d",
+                 estadoCompRFAv.btnIndice, modeloCtrlAVRx.boton_desactivacion, activarPerifericos, estadoAlarmaActual,
+                 ackPendiente ? 1 : 0, filtradoPredicho ? 1 : 0);
+        }
         async_mqtt_msg_ctrl_alarma();                            // Enviar mensaje MQTT de control de alarma
         async_evento_ctrl_av(AL_CTRL_TP_AV, activarPerifericos); // Llamar a la función para procesar el evento de control
         return true;                                             // si se encendio o apago la alarma, salir de la funcion
         break;
     // CONTROL DE GUARDIAN DE ALARMA
     case 2: // alerta sonora y mensaje
-        // async_evento_ctrl_av(AL_CTRL_TP_GUARDIAN); // Llamar a la función para procesar el evento de control
+        // Solo el boton D (desactivacion) dispara el flujo: desactiva + rehabilita el candado de auditoria.
+        // Los botones 0/1/2 del guardian no estan conectados (procesarControlGuardian queda intacto/inalcanzable).
+        if ((estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
+        {
+            LOGF("\r\n[CANDADO-DIAG] boton D de Guardian detectado. btnIndice:%d boton_desactivacion:%d",
+                 estadoCompRFAv.btnIndice, modeloCtrlAVRx.boton_desactivacion);
+            async_evento_ctrl_av(AL_CTRL_TP_GUARDIAN, 0); // Llamar a la función para procesar el evento de control
+        }
         return true; // si se encendio o apago la alarma, salir de la funcion
         break;
     case 3:                       // control de integrador

@@ -3,7 +3,6 @@
 #include "ConfigSistema.h"
 #include "logSistema.h"
 #include "VariablesGlobales.h"
-#include "procesos_cmd.h"
 
 void GestorCMD::CtrlAv(uint8_t tipoCtrl)
 {
@@ -15,8 +14,8 @@ void GestorCMD::CtrlAv(uint8_t tipoCtrl)
     if (btnDesactivacion && (tipoCtrl == AL_CTRL_TP_AV || tipoCtrl == AL_CTRL_TP_GUARDIAN))
     {
         LOG("\r\n\r\nALARMA DESACTIVADA POR CONTROL AV");
-        if (tipoCtrl == AL_CTRL_TP_GUARDIAN)
-            ack_alarma_pendiente(); // boton D del guardian limpia la bandera de auditoria
+        // Nota: el ack del guardian (boton D) se maneja en procesos_cmd.cpp::rev_async_evento_ctrl_av,
+        // ANTES de llegar aqui, para que no dependa del filtro de dedup de estado fisico.
         desactivacionAud1Sal1();
         return;
     }

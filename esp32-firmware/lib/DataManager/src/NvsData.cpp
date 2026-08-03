@@ -30,8 +30,10 @@ bool DataManager::cargarConfig(void)
         {"cnfVOZ", &this->perifericos[2], sizeof(this->perifericos[2]), false},
         {"confPER", &this->perifericos[3], sizeof(this->perifericos[3]), false},
         {"timerAlarma", &this->timerAlarma, sizeof(this->timerAlarma), false},
-        {"enTamper", &this->tamper, sizeof(this->tamper), false},
-        {"alarmaAck", &this->alarmaPendienteAck, sizeof(this->alarmaPendienteAck), false}};
+        {"enTamper", &this->tamper, sizeof(this->tamper), false}};
+    // Nota: "alarmaAck" se maneja aparte via DataManager::getAlarmaPendienteAck() (get-or-create),
+    // no en esta tabla generica, para evitar el log de "clave no encontrada" en dispositivos
+    // ya instalados que aun no tienen la clave.
 
     // Cargar configuraciones desde NVS
     for (const auto &entry : entries)

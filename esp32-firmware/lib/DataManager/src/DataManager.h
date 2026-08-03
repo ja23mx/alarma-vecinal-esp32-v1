@@ -39,6 +39,7 @@ public:
     bool setTimerAlarma(uint16_t timer);
     bool setTamper(uint8_t habilitacion);
     bool setAlarmaPendienteAck(uint8_t valor);
+    uint8_t getAlarmaPendienteAck(void);
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // Métodos de comando serial //////////////////////////////////////////////////////////////////
