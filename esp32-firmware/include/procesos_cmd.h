@@ -12,6 +12,9 @@ void call_async_eventos(void);
 uint8_t get_estado_alarma(void);
 void reset_estado_alarma(void);
 
+bool get_alarma_pendiente_ack(void);
+void ack_alarma_pendiente(void);
+
 void rev_async_evento_ctrl_av(void);
 void async_evento_ctrl_av(uint8_t tipoCtrl, uint8_t estadoAlarma);
 

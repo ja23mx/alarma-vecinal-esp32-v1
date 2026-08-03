@@ -22,6 +22,7 @@ DataManager::DataManager()
     memset(perifericos, 0, sizeof(perifericos));
     timerAlarma = 0;
     tamper = 0;
+    alarmaPendienteAck = 0;
 }
 
 // Inicializa LittleFS y otras configuraciones necesarias
@@ -135,6 +136,7 @@ void DataManager::rstData(void)
     setPerifericos(4, 0);      //    4 -> perifoneo
     setTimerAlarma(30);        // 30 segundos timer alarma
     setTamper(0);              // Tamper deshabilitado
+    setAlarmaPendienteAck(0);  // Sin activacion pendiente de ack
 
     LOG("\r\n\r\nDatos de configuracion restablecidos a valores predeterminados.");
     LOGF("\r\nNumero de serie: %s", numeroSerie);
@@ -323,4 +325,65 @@ bool DataManager::setTamper(uint8_t habilitacion)
     nvsData.end();
 
     return true;
+}
+
+/**
+ * @brief Configura la bandera de auditoria de activacion sin reconocer.
+ *
+ * @param valor 0 = sin pendiente, 1 = activacion pendiente de ack.
+ * @return true si la configuración fue exitosa, false si hubo un error.
+ */
+bool DataManager::setAlarmaPendienteAck(uint8_t valor)
+{
+    if (valor > 1)
+    {
+        LOG("\r\nError: El valor de alarmaPendienteAck debe ser 0 o 1.");
+        return false;
+    }
+    this->alarmaPendienteAck = valor;
+
+    if (!nvsData.begin(NAME_SPACE_CNF, false))
+    {
+        LOG("\r\nError al abrir el espacio de nombres.");
+        return false;
+    }
+
+    nvsData.putUChar("alarmaAck", this->alarmaPendienteAck);
+
+    nvsData.end();
+
+    return true;
+}
+
+/**
+ * @brief Obtiene la bandera de auditoria de activacion sin reconocer, creandola en NVS si no existe.
+ *
+ * @details Get-or-create: si la clave "alarmaAck" no existe aun en NVS (dispositivo ya
+ * instalado en campo, actualizado a una version que no tenia este campo), la crea con el
+ * valor seguro por defecto (0) en ese mismo momento, en vez de esperar a la primera
+ * activacion real.
+ *
+ * @return uint8_t Valor actual de la bandera (0 o 1).
+ */
+uint8_t DataManager::getAlarmaPendienteAck(void)
+{
+    if (!nvsData.begin(NAME_SPACE_CNF, false))
+    {
+        LOG("\r\nError al abrir el espacio de nombres.");
+        return this->alarmaPendienteAck;
+    }
+
+    if (!nvsData.isKey("alarmaAck"))
+    {
+        nvsData.putUChar("alarmaAck", 0);
+        this->alarmaPendienteAck = 0;
+    }
+    else
+    {
+        this->alarmaPendienteAck = nvsData.getUChar("alarmaAck", 0);
+    }
+
+    nvsData.end();
+
+    return this->alarmaPendienteAck;
 }

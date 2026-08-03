@@ -14,6 +14,8 @@ void GestorCMD::CtrlAv(uint8_t tipoCtrl)
     if (btnDesactivacion && (tipoCtrl == AL_CTRL_TP_AV || tipoCtrl == AL_CTRL_TP_GUARDIAN))
     {
         LOG("\r\n\r\nALARMA DESACTIVADA POR CONTROL AV");
+        // Nota: el ack del guardian (boton D) se maneja en procesos_cmd.cpp::rev_async_evento_ctrl_av,
+        // ANTES de llegar aqui, para que no dependa del filtro de dedup de estado fisico.
         desactivacionAud1Sal1();
         return;
     }
