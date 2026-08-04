@@ -70,30 +70,24 @@ void GestorCMD::procesarControlAV(const String &modelo, int btn)
     if (modelo == "CTAV1")
     {
         LOG("\r\n\r\nALARMA ACTIVADA POR CONTROL AV CTAV1");
-        if (btn == 0 || btn == 1)
+        if (btn == 0 || btn == 1 || btn == 2)
         {
-            String emgValue = (btn == 0) ? "50" : "51";
+            String emgValue = (btn == 0) ? "50" : (btn == 1) ? "51"
+                                                               : "52";
             String ctrlValue = String(1000 + estadoCompRFAv.control);
             instruccionSalida = "*SD*1*3:1:-1##";
             instruccionAudio = "*SA*1*6:2:60:" + emgValue + ":" + ctrlValue + "##";
-        }
-        else if (btn == 2)
-        {
-            cmd1PistaLedAtm(52, 6); // Pista 52, Fade 6
         }
     }
     else if (modelo == "CTAV2")
     {
         LOG("\r\n\r\nALARMA ACTIVADA POR CONTROL AV CTAV2");
-        if (btn == 0 || btn == 1)
+        if (btn == 0 || btn == 1 || btn == 2)
         {
-            String emgValue = (btn == 0) ? "60" : "61";
+            String emgValue = (btn == 0) ? "60" : (btn == 1) ? "61"
+                                                               : "62";
             instruccionSalida = "*SD*1*3:1:-1##";
             instruccionAudio = "*SA*1*6:2:60:" + emgValue + ":" + emgValue + "##";
-        }
-        else if (btn == 2)
-        {
-            cmd1PistaLedAtm(62, 6); // Pista 62, Fade 6
         }
     }
 
