@@ -68,12 +68,13 @@ Para soportar hasta 100 controles sin exceder el buffer MQTT de 2048 bytes, la l
 
 ### op: add
 1. El payload envía `id_ct` (letra A–Z asignada al modelo en NVS)
-2. `writeMemRF()` busca el `nombre` del modelo en `Data.CtrlModelos` por `id_ct`
+2. `writeMemRF()` busca el `nombre` del modelo en `Data.CtrlModelos` por `id_ct` — **sin distinguir tipo de modelo** (AV, Guardián o Integrador se registran igual)
 3. Para cada señal: `Data.espacioVacioDspRF()` asigna el número de control libre
 4. `Data.guardarDspRFFull(nombre, num, 1, signal)` persiste en NVS y actualiza `controlValues` en RAM
 5. El `status` al registrar siempre es `1` (habilitado)
+6. El ACK devuelve en `datos` cada señal efectivamente registrada, con `id_ct`/`nombre`/`num`/`sig` — confirma qué modelo y qué número quedó asignado
 
-Los `id_ct` disponibles se obtienen leyendo RF (campo `modelos` en página 0).
+Los `id_ct` disponibles se obtienen leyendo RF (campo `modelos` en página 0). En `readMemRF()`, el campo `datos` de la respuesta agrupa los controles por modelo (`id_ct`/`nombre` una vez por grupo, con su lista anidada de `controles`) para no repetir el nombre por cada control — ver [`how-to-use.md`](how-to-use.md) para el formato exacto.
 
 ### op: update
 1. El payload envía un array de objetos con `num` (requerido), `sig` y/o `status` (opcionales)

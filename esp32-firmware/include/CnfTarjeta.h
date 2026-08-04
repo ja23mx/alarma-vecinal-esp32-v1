@@ -6,7 +6,7 @@
 
 #define SISTEMA_FIRMWARE "esp32.av"        // Nombre del firmware
 #define SISTEMA_VERSION "0.1.0"            // Version del sistema
-#define SISTEMA_ETAPA "beta.7"             // Etapa de desarrollo
+#define SISTEMA_ETAPA "beta.8"             // Etapa de desarrollo
 #define SISTEMA_DATE __DATE__ " " __TIME__ // Fecha y hora de compilación
 
 #endif // CONST_TARJETA_H

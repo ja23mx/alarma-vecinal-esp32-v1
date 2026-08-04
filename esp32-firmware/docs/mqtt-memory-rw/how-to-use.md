@@ -155,21 +155,33 @@ Solo se actualizan los campos presentes. Todos son opcionales.
   "pages": 2,
   "total": 25,
   "modelos": [
-    { "id_ct": "A", "nombre": "CTRL BLANCO 4T AV M1" },
-    { "id_ct": "B", "nombre": "CTRL BLANCO 4T AV M2" },
-    { "id_ct": "C", "nombre": "CTRL BLANCO 4T GUARDIAN" },
-    { "id_ct": "D", "nombre": "CTRL BLANCO 4T INTEGRADOR" }
+    { "id_ct": "A", "nombre": "CTRL BLANCO 4T AV M1", "total": 15 },
+    { "id_ct": "B", "nombre": "CTRL BLANCO 4T AV M2", "total": 3 },
+    { "id_ct": "C", "nombre": "CTRL BLANCO 4T GUARDIAN", "total": 1 },
+    { "id_ct": "D", "nombre": "CTRL BLANCO 4T INTEGRADOR", "total": 0 }
   ],
   "datos": [
-    { "num": 1, "id_ct": "A", "status": 1, "sig": 13255936 },
-    { "num": 2, "id_ct": "A", "status": 1, "sig": 13500001 }
+    {
+      "id_ct": "A",
+      "nombre": "CTRL BLANCO 4T AV M1",
+      "controles": [
+        { "num": 1, "status": 1, "sig": 13255936 },
+        { "num": 2, "status": 1, "sig": 13500001 }
+      ]
+    },
+    {
+      "id_ct": "C",
+      "nombre": "CTRL BLANCO 4T GUARDIAN",
+      "controles": [ { "num": 4, "status": 1, "sig": 11918704 } ]
+    }
   ]
 }
 ```
 
-- `modelos`: aparece solo en página 0; lista los modelos disponibles con su `id_ct`
-- `datos`: máximo 20 controles por página
-- `num`: número de control (usado para borrar)
+- `modelos`: aparece solo en página 0; lista **todos** los modelos disponibles con su `id_ct` (incluso los que no tengan controles registrados todavía) — es el catálogo a usar para armar un `write rf op:add`. `total` es el conteo real de controles de ese modelo en **todo** el dispositivo, no solo en la página actual — sirve como resumen global sin tener que recorrer todas las páginas
+- `datos`: agrupado por modelo, por página. Cada grupo trae `id_ct` + `nombre` una sola vez y su lista de `controles` (`num`, `status`, `sig`) — si un modelo tiene controles repartidos entre páginas, el grupo aparece una vez en cada página que abarque
+- Máximo 20 controles individuales por página — la paginación sigue contando controles, no modelos. Si un modelo tiene controles repartidos entre dos páginas, su grupo (`id_ct`/`nombre`) aparece una vez en cada página que abarque
+- `num`: número de control (usado para borrar/actualizar)
 - `sig`: señal RF base almacenada
 
 **Solicitar página siguiente:**
@@ -203,10 +215,27 @@ Registrar múltiples señales del mismo modelo en un solo mensaje:
 - `sig`: array de señales RF base (hasta 100 señales en total por mensaje)
 - El `status` se asigna en `1` (habilitado) automáticamente
 
+**El `write rf op:add` es indiferente al tipo de modelo — no solo para controles de usuario.** El mismo mecanismo registra controles AV, Guardián o Integrador; el firmware no distingue tipo al guardar (`guardarDspRFFull()` solo busca el modelo por nombre, sin filtrar por `configuracion`). Es decir, para registrar un control Guardián el request es idéntico, solo cambia el `id_ct` — el que corresponda al modelo Guardián en `read rf → modelos`.
+
+En este firmware, los cuatro modelos iniciales quedan fijos en A–D por el orden de registro en `rstDataCnfCtrl()` (A=AV1, B=AV2, C=Guardián, D=Integrador) y no se espera que cambien — los modelos nuevos se agregan después de D. Aun así, resuelve `id_ct` por `nombre` desde `read rf` en cada dispositivo en vez de asumir la letra fija — ya es parte del flujo normal (necesitas leer antes de poder escribir) y evita depender de un orden que vive en el código, no en el protocolo.
+
+> **Precaución de seguridad:** desde que existe el candado de activación con ack de Guardián ([`lockackalarm.md`](../update/lockackalarm.md)), un control Guardián tiene el privilegio de liberar ese candado. Este endpoint no distingue quién puede registrar qué tipo de control — cualquiera que pueda publicar en el topic `CMD` del dispositivo puede registrar un control Guardián tan fácilmente como uno de usuario. No hay control de acceso diferenciado a nivel de este mecanismo.
+
 **Response:**
 ```json
-{ "dsp": "A1B2C3", "tipo": "ack-mem", "target": "rf", "status": 0 }
+{
+  "dsp": "A1B2C3",
+  "tipo": "ack-mem",
+  "target": "rf",
+  "status": 0,
+  "datos": [
+    { "id_ct": "A", "nombre": "CTRL BLANCO 4T AV M1", "num": 5, "sig": 13255936 },
+    { "id_ct": "A", "nombre": "CTRL BLANCO 4T AV M1", "num": 6, "sig": 13500001 }
+  ]
+}
 ```
+
+- `datos` confirma exactamente qué se grabó: modelo resuelto (`id_ct`/`nombre`) y número de control asignado (`num`) por cada señal — solo aparece si al menos un registro tuvo éxito
 
 ---
 
