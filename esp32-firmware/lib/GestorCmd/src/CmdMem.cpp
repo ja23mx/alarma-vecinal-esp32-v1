@@ -15,6 +15,16 @@
 #include "LogSistema.h"
 #include "ErroresCMD.h"
 
+// Resultado de un registro individual en writeMemRF (op:add) — se usa para
+// confirmar en el ACK exactamente que modelo/numero/senal quedo grabado.
+struct RfAddResultado
+{
+    char id_ct;
+    String nombre;
+    uint16_t num;
+    unsigned long sig;
+};
+
 // ---------------------------------------------------------------------------
 // Helper interno
 // ---------------------------------------------------------------------------
@@ -88,28 +98,53 @@ void GestorCMD::readMemRF(void)
         JsonArray modelos = docJson.createNestedArray("modelos");
         for (const auto &modelo : Data.CtrlModelos)
         {
+            uint16_t totalModelo = 0;
+            for (const auto &cv : Data.controlValues)
+            {
+                if (std::get<0>(cv) == modelo.id_cnf_ctrl)
+                    totalModelo++;
+            }
+
             JsonObject m = modelos.createNestedObject();
             char id_str[2] = {modelo.id_cnf_ctrl, '\0'};
             m["id_ct"] = id_str;
             m["nombre"] = modelo.nombre;
+            m["total"] = totalModelo;
         }
     }
 
+    // Agrupar por modelo dentro de la ventana de la pagina actual — evita repetir
+    // "nombre" por cada control individual. Si un modelo tiene controles en mas de
+    // una pagina, su grupo aparece una vez por cada pagina que abarque (limite
+    // aceptado a cambio de no rediseñar la paginacion, que sigue siendo por
+    // controles individuales, no por modelo).
     JsonArray datos = docJson.createNestedArray("datos");
-    for (size_t i = start; i < end; i++)
+    for (const auto &modelo : Data.CtrlModelos)
     {
-        const auto &cv = Data.controlValues[i];
-        char id_ct = std::get<0>(cv);
-        uint16_t num = std::get<1>(cv);
-        uint8_t ctrlStatus = std::get<2>(cv);
-        unsigned long signal = std::get<3>(cv);
+        JsonArray controles;
+        bool grupoCreado = false;
 
-        JsonObject entry = datos.createNestedObject();
-        entry["num"] = num;
-        char id_str[2] = {id_ct, '\0'};
-        entry["id_ct"] = id_str;
-        entry["status"] = ctrlStatus;
-        entry["sig"] = signal;
+        for (size_t i = start; i < end; i++)
+        {
+            const auto &cv = Data.controlValues[i];
+            if (std::get<0>(cv) != modelo.id_cnf_ctrl)
+                continue;
+
+            if (!grupoCreado)
+            {
+                JsonObject grupo = datos.createNestedObject();
+                char id_str[2] = {modelo.id_cnf_ctrl, '\0'};
+                grupo["id_ct"] = id_str;
+                grupo["nombre"] = modelo.nombre;
+                controles = grupo.createNestedArray("controles");
+                grupoCreado = true;
+            }
+
+            JsonObject entry = controles.createNestedObject();
+            entry["num"] = std::get<1>(cv);
+            entry["status"] = std::get<2>(cv);
+            entry["sig"] = std::get<3>(cv);
+        }
     }
 
     serializeJson(docJson, jsonBuffer, sizeof(jsonBuffer));
@@ -191,6 +226,7 @@ void GestorCMD::writeMemRF(void)
 {
     String op = docJson["op"] | "";
     bool ok = true;
+    std::vector<RfAddResultado> registrados; // solo se llena en op:add, para confirmar en el ACK
 
     if (op == "add")
     {
@@ -226,7 +262,9 @@ void GestorCMD::writeMemRF(void)
             {
                 unsigned long signal = v.as<unsigned long>();
                 uint16_t num = Data.espacioVacioDspRF();
-                if (!Data.guardarDspRFFull(nombre, num, 1, signal))
+                if (Data.guardarDspRFFull(nombre, num, 1, signal))
+                    registrados.push_back({id_ct, String(nombre), num, signal});
+                else
                     ok = false;
             }
         }
@@ -293,6 +331,21 @@ void GestorCMD::writeMemRF(void)
     }
 
     buildMemHeader("rf", ok ? ERROR_NINGUNO : 1);
+
+    if (!registrados.empty()) // solo op:add deja algo aqui
+    {
+        JsonArray datos = docJson.createNestedArray("datos");
+        for (const auto &r : registrados)
+        {
+            JsonObject entry = datos.createNestedObject();
+            char id_str[2] = {r.id_ct, '\0'};
+            entry["id_ct"] = id_str;
+            entry["nombre"] = r.nombre;
+            entry["num"] = r.num;
+            entry["sig"] = r.sig;
+        }
+    }
+
     serializeJson(docJson, jsonBuffer, sizeof(jsonBuffer));
     LOG("\r\nwriteMemRF. op: " + op + " ok: " + String(ok));
 }
