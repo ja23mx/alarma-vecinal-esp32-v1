@@ -206,6 +206,25 @@ sin errores.
 
 ---
 
+## Seguimiento — beta.9 (2026-08-07)
+
+Se detectó que `async_mqtt_msg_ctrl_alarma()` (`wifi_mqtt_esp.cpp`) notificaba la activación
+(`"estado-alarma":1`) al topic `.../ACK/` **antes** de que el candado pudiera bloquearla — la
+notificación se dispara de forma síncrona en `rf_esp.cpp::rf_esp_nv_dato()` al recibir la señal
+RF, mientras que el filtro real del candado (`g_alarmaPendienteAck`) solo corre después, de forma
+asíncrona, en `rev_async_evento_ctrl_av()` (tarea `tareaProcesosCmd`). El resultado: aunque el
+dispositivo se bloqueaba correctamente en local, igual anunciaba al backend una activación que
+nunca ocurrió — y como ese topic ACK es el que el backend usa para propagar la alerta a otros
+dispositivos de la misma red vecinal, terminaba activando equipos vecinos por una alarma que
+localmente estaba bloqueada.
+
+**Fix:** `async_mqtt_msg_ctrl_alarma()` ahora consulta `get_alarma_pendiente_ack()` antes de
+publicar una notificación de activación — si el candado está armado, omite el envío (con log)
+en vez de anunciar una activación falsa. La rama de desactivación no se modificó — nunca fue
+parte del problema.
+
+Confirmado en hardware: build v0.1.0-beta.9, OTA exitoso sobre WiFi en EF4934.
+
 ## Posibles mejoras futuras (no implementadas)
 
 - **Cooldown configurable** en vez de (o adicional a) candado duro — ventana corta y

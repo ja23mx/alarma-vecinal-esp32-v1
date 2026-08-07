@@ -141,7 +141,14 @@ void async_mqtt_msg_ctrl_alarma(void)
         // Notificar mqtt si no está activada y llego boton que no es desactivacion.
         if (get_estado_alarma() == 0 && (estadoCompRFAv.btnIndice + 1) != modeloCtrlAVRx.boton_desactivacion)
         {
-            msgPayloadCtrlMqtt();
+            if (get_alarma_pendiente_ack())
+            {
+                LOG("\r\n\r\nMQTT. Notificacion de activacion omitida: bloqueada por candado.");
+            }
+            else
+            {
+                msgPayloadCtrlMqtt();
+            }
         }
         // notificar mqtt si esta activada y llega boton de desactivaciom
         else if (get_estado_alarma() == 1 && (estadoCompRFAv.btnIndice + 1) == modeloCtrlAVRx.boton_desactivacion)
