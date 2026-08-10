@@ -71,3 +71,18 @@ Usar `config_particion.csv` (no `huge_app.csv`):
 | `accion` desconocida | `ack-update` + `ERROR_PARAMETROS_INVALIDOS` |
 | URL vacía en `init` | ACK enviado, `otaPendiente` no se activa |
 | Fallo en descarga/flash | `ESP.restart()` de todas formas |
+
+## Troubleshooting
+
+### HTTP 301 al descargar el binario
+
+Síntoma en log: `OTA WiFi: HTTP GET falló. Código: 301`, seguido de reinicio sin flashear
+(el firmware reinicia siempre tras un fallo de descarga, ver tabla de arriba).
+
+**No es un bug de `otaWiFi()`/`otaEthernet()`** — ninguno de los dos sigue redirecciones,
+por diseño, así que un 301 real del servidor siempre se reporta como fallo. Antes de tocar
+el firmware, descartar el servidor: probar la URL exacta del binario con `curl -D -` desde
+otra máquina. Si responde `200 OK` limpio ahí pero el ESP32 recibe 301, la causa está en la
+infraestructura de `update-ssh` (servidor Python efímero en `127.0.0.1:9091` + proxy nginx) —
+caso confirmado (2026-08-07, beta.9): el propio servidor devolvía 301 en vez de proxyar
+correctamente al backend temporal.
