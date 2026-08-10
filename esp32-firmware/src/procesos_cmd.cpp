@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 
 #include "ConfigSistema.h"
+#include "CnfTarjeta.h"
 #include "LOGSistema.h"
 #include "procesos_cmd.h"
 #include "rf_esp.h"
@@ -184,7 +185,7 @@ void rev_async_evento_ctrl_av(void) // 3434
     {
         if (estadoAlarma == 1)
         {
-            if (g_alarmaPendienteAck)
+            if (CANDADO_ACTIVACION_HABILITADO && g_alarmaPendienteAck)
             {
                 // Candado: hay una activacion previa sin reconocer por el Guardian.
                 // Bloquea CUALQUIER nueva activacion, sin importar g_estadoAlarma actual.
@@ -340,7 +341,7 @@ void sync_evento_mqtt(String payload) // 3434
             {
                 if (estadoAlarma == 1)
                 {
-                    if (g_alarmaPendienteAck)
+                    if (CANDADO_ACTIVACION_HABILITADO && g_alarmaPendienteAck)
                     {
                         // Candado: hay una activacion previa sin reconocer por el Guardian.
                         filtrado = true;
