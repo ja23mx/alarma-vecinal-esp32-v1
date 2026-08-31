@@ -229,28 +229,25 @@ bool gestionar_conexion_wifi(void)
 {
     _usingEthernet = false;
 
-    // Intentar Ethernet primero
+    // Ethernet (W5500 vía arduino-libraries/Ethernet) no puede usarse con el cliente
+    // MQTT actual (esp_mqtt_client requiere la pila lwIP, que el W5500 no integra en
+    // este proyecto). Se deja conectado igualmente por si se usa para algo mas (NTP, etc.),
+    // pero MQTT solo se inicializa sobre WiFi. Ver MqttTools.h.
     if (initEthernet())
     {
+        _usingEthernet = true;
         TimeManager::getInstance().init();
-        if (mqttManager.init(true))
-        {
-            _usingEthernet = true;
-            envio_msg_init_broker();
-            Serial.print("\r\n\r\nMQTT sobre Ethernet inicializado.");
-            return true;
-        }
-        Serial.print("\r\n\r\nMQTT Ethernet fallido. Intentando WiFi...");
+        Serial.print("\r\n\r\nEthernet conectado. MQTT requiere WiFi, intentando WiFi...");
     }
 
-    // Fallback a WiFi
     if (init_conexion_wifi())
     {
-        TimeManager::getInstance().init();
-        if (mqttManager.init(false))
+        if (!_usingEthernet)
+            TimeManager::getInstance().init();
+        if (mqttManager.init())
         {
             envio_msg_init_broker();
-            Serial.print("\r\n\r\nMQTT sobre WiFi inicializado.");
+            Serial.print("\r\n\r\nMQTT sobre WiFi (wss) inicializado.");
             return true;
         }
         Serial.print("\r\n\r\nError al inicializar MQTT sobre WiFi.");

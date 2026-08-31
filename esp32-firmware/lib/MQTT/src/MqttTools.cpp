@@ -1,6 +1,6 @@
 /**
  * @file MqttTools.cpp
- * @brief Implementación de MqttTools.
+ * @brief Implementación de MqttTools sobre esp_mqtt_client (wss).
  */
 #include "MqttTools.h"
 
@@ -11,8 +11,14 @@
 #include "TimeManager.h"
 #include "VariablesGlobales.h"
 
-#include "mqtt_cert_jlinfra_wifi.h"
-#include "mqtt_cert_jlinfra_ethernet.h"
+// Provista por la librería WiFiClientSecure del core arduino-esp32 (se compila
+// porque el proyecto sigue incluyendo <WiFiClientSecure.h> en wifi_mqtt_esp.cpp).
+// Valida el certificado del broker contra el bundle de CAs públicas embebido en
+// el firmware, sin necesidad de pegar un PEM a mano (Cloudflare usa CAs públicas estándar).
+extern "C" esp_err_t arduino_esp_crt_bundle_attach(void *conf);
+
+// Buffer de topic usado solo para el log de depuración al reconstruir mensajes fragmentados.
+static String s_topicBuf;
 
 // ---------------------------------------------------------------------------
 // Estáticos públicos
@@ -26,46 +32,74 @@ String MqttTools::payload = "";
 // ---------------------------------------------------------------------------
 
 MqttTools::MqttTools(const char *server, int port, const char *user, const char *pass)
-    : _wifiMqtt(_wifiClient),
-      _sslEthClient(_ethClient, TAs, TAs_NUM, W5500_ENTROPY_PIN),
-      _ethMqtt(_sslEthClient),
-      _activeClient(nullptr),
-      _useEthernet(false),
+    : _client(nullptr),
+      _config(),
       _hbTmInit(false),
       _tiHb(0)
 {
-    _wifiMqtt.setBufferSize(2048);
-    _wifiMqtt.setServer(server, port);
-    _ethMqtt.setBufferSize(2048);
-    _ethMqtt.setServer(server, port);
+    _config.host = server;
+    _config.port = port;
+    _config.username = user;
+    _config.password = pass;
 }
 
 // ---------------------------------------------------------------------------
-// Callback (free function requerida por PubSubClient)
+// Manejo de eventos (ejecuta en la tarea interna de esp_mqtt_client)
 // ---------------------------------------------------------------------------
 
-/**
- * @brief Callback de PubSubClient para mensajes MQTT entrantes.
- *
- * Copia el payload al buffer estático y activa el flag para procesamiento
- * diferido desde loop(). No realizar operaciones bloqueantes aquí.
- *
- * @param topic   Tópico del mensaje recibido.
- * @param payload Puntero al payload (no null-terminated).
- * @param length  Longitud del payload en bytes.
- *
- * @warning No llamar funciones bloqueantes ni delay() desde este callback.
- */
-static void mqttCallback(char *topic, byte *payload, unsigned int length)
+void MqttTools::eventHandlerStatic(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    MqttTools::dato_mqtt_callback = true;
-    MqttTools::payload = "";
-    for (unsigned int i = 0; i < length; i++)
-        MqttTools::payload += (char)payload[i];
-    MqttTools::payload += '\0';
+    (void)base;
+    (void)event_id;
+    static_cast<MqttTools *>(handler_args)->handleEvent(static_cast<esp_mqtt_event_handle_t>(event_data));
+}
 
-    Serial.print("\r\n\r\n\r\nMQTT NV MSG\r\nTOPIC:\r\n" + String(topic) +
-                 "\r\nPAYLOAD:\r\n" + MqttTools::payload + "\r\n\r\n\r\n");
+void MqttTools::handleEvent(esp_mqtt_event_handle_t event)
+{
+    switch (event->event_id)
+    {
+    case MQTT_EVENT_CONNECTED:
+        LOG("\r\n\r\nMQTT (wss) conectado.");
+        conectado = true;
+        esp_mqtt_client_subscribe(_client, _topicCmd.c_str(), 0);
+        _hbTmInit = false; // fuerza envío de heartbeat en el próximo loop()
+        break;
+
+    case MQTT_EVENT_DISCONNECTED:
+        LOG("\r\n\r\nMQTT desconectado.");
+        conectado = false;
+        break;
+
+    case MQTT_EVENT_DATA:
+        // Un mensaje puede llegar fragmentado en varios eventos si supera el buffer interno.
+        if (event->current_data_offset == 0)
+        {
+            payload = "";
+            s_topicBuf = "";
+            if (event->topic_len > 0)
+                s_topicBuf.concat(event->topic, event->topic_len);
+        }
+        payload.concat(event->data, event->data_len);
+
+        if (event->current_data_offset + event->data_len >= event->total_data_len)
+        {
+            Serial.print("\r\n\r\n\r\nMQTT NV MSG\r\nTOPIC:\r\n" + s_topicBuf +
+                         "\r\nPAYLOAD:\r\n" + payload + "\r\n\r\n\r\n");
+            dato_mqtt_callback = true;
+        }
+        break;
+
+    case MQTT_EVENT_ERROR:
+        LOG("\r\n\r\nMQTT error.");
+        if (event->error_handle && event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
+            LOGF("\r\nMQTT error TCP/TLS: esp_err=0x%x sock_errno=%d",
+                 event->error_handle->esp_tls_last_esp_err,
+                 event->error_handle->esp_transport_sock_errno);
+        break;
+
+    default:
+        break;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -74,39 +108,50 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length)
 
 bool MqttTools::init(bool ethernet)
 {
-    _useEthernet = ethernet;
-    _activeClient = ethernet ? &_ethMqtt : &_wifiMqtt;
+    (void)ethernet; // este cliente solo soporta WiFi (ver MqttTools.h)
+
+    // esp_mqtt_client se reconecta solo; evitar recrearlo en cada llamada de
+    // gestionar_conexion_wifi() (se reintenta cada MQTT_CNF_TM_INT_RECONEXION mientras no hay red).
+    if (_client != nullptr)
+        return true;
 
     _topicCmd = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_2;
     _topicPubAck = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_3;
     _clientId = "AV-" + String(Data.numeroSerie);
 
-    LOG("\r\n\r\nMQTT init. Medio: " + String(ethernet ? "Ethernet" : "WiFi"));
+    LOG("\r\n\r\nMQTT init (wss). Medio: WiFi");
     LOG("\r\ntopicCmd: " + _topicCmd);
     LOG("\r\ntopicPubAck: " + _topicPubAck);
     LOG("\r\nclientId: " + _clientId);
 
-    if (!ethernet)
-        _wifiClient.setCACert(mqtt_crt_wifi);
+    _config.transport = MQTT_TRANSPORT_OVER_WSS;
+    _config.path = "/";
+    _config.client_id = _clientId.c_str();
+    _config.buffer_size = 2048;
+    _config.crt_bundle_attach = arduino_esp_crt_bundle_attach;
 
-    _activeClient->setCallback(mqttCallback);
-    return mqttSuscripcion();
+    _client = esp_mqtt_client_init(&_config);
+    if (_client == nullptr)
+    {
+        LOG("\r\n\r\nMQTT: error al crear el cliente (esp_mqtt_client_init).");
+        return false;
+    }
+
+    esp_mqtt_client_register_event(_client, MQTT_EVENT_ANY, eventHandlerStatic, this);
+
+    if (esp_mqtt_client_start(_client) != ESP_OK)
+    {
+        LOG("\r\n\r\nMQTT: error al iniciar el cliente (esp_mqtt_client_start).");
+        return false;
+    }
+
+    return true;
 }
 
 bool MqttTools::loop()
 {
-    if (!_activeClient->connected())
-        return mqttReconnect();
-
-    if (dato_mqtt_callback)
-    {
-        dato_mqtt_callback = false;
-        nuevoPayload = true;
-    }
-
-    _activeClient->loop();
     revHbTimer();
-    return true;
+    return conectado;
 }
 
 bool MqttTools::publishAck(const String &msg)
@@ -116,7 +161,7 @@ bool MqttTools::publishAck(const String &msg)
         LOG("\r\nNo se puede publicar, no conectado a MQTT.");
         return false;
     }
-    return _activeClient->publish(_topicPubAck.c_str(), msg.c_str(), true);
+    return esp_mqtt_client_publish(_client, _topicPubAck.c_str(), msg.c_str(), msg.length(), 0, true) != -1;
 }
 
 bool MqttTools::publish(const char *topic, const String &msg, bool retain)
@@ -126,7 +171,7 @@ bool MqttTools::publish(const char *topic, const String &msg, bool retain)
         LOG("\r\nNo se puede publicar, no conectado a MQTT.");
         return false;
     }
-    return _activeClient->publish(topic, msg.c_str(), retain);
+    return esp_mqtt_client_publish(_client, topic, msg.c_str(), msg.length(), 0, retain) != -1;
 }
 
 // ---------------------------------------------------------------------------
@@ -142,6 +187,8 @@ void MqttTools::revHbTimer()
     {
         _hbTmInit = true;
         _tiHb = millis();
+        envHbMqtt();
+        return;
     }
 
     if (millis() - _tiHb > MQTT_CNF_TM_HB_SG * 1000)
@@ -164,65 +211,5 @@ void MqttTools::envHbMqtt()
                  ",\"tm\":\"" + timestamp +
                  "\",\"ntp_status\":\"" + ntpStatus + "\"}";
 
-    _activeClient->publish(TOPIC_PUB, msg.c_str(), true);
-}
-
-bool MqttTools::mqttReconnect()
-{
-    // Ethernet: link caído → limpiar error SSL y salir rápido para habilitar fallback a WiFi
-    if (_useEthernet && Ethernet.linkStatus() != LinkON)
-    {
-        _sslEthClient.stop();
-        LOG("\r\nEthernet: link caído, cancelando reconexión MQTT.");
-        return false;
-    }
-
-    unsigned long start = millis();
-    while (!_activeClient->connected())
-    {
-        if (_useEthernet && Ethernet.linkStatus() != LinkON)
-        {
-            _sslEthClient.stop();
-            LOG("\r\nEthernet: link caído durante reconexión MQTT.");
-            return false;
-        }
-
-        LOG("\r\nIntentando conectar a MQTT...");
-
-        // Fix SSLClient: stop() limpia m_write_error antes de cada intento TLS
-        if (_useEthernet)
-            _sslEthClient.stop();
-        else
-            _wifiClient.stop();
-
-        if (_activeClient->connect(_clientId.c_str(), mqtt_user, mqtt_pass))
-        {
-            LOG("\r\nConexión exitosa.");
-            return mqttSuscripcion();
-        }
-        if (millis() - start > 30000)
-        {
-            LOG("\r\nTimeout de conexión MQTT.");
-            return false;
-        }
-        delay(5000);
-    }
-    return false;
-}
-
-bool MqttTools::mqttSuscripcion()
-{
-    if (!_activeClient->connected())
-    {
-        if (!_activeClient->connect(_clientId.c_str(), mqtt_user, mqtt_pass))
-            return mqttReconnect();
-    }
-
-    if (_activeClient->subscribe(_topicCmd.c_str()))
-    {
-        conectado = true;
-        envHbMqtt();
-        return true;
-    }
-    return false;
+    esp_mqtt_client_publish(_client, TOPIC_PUB, msg.c_str(), msg.length(), 0, true);
 }
