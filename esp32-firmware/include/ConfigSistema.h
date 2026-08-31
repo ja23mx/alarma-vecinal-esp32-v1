@@ -3,7 +3,7 @@
 
 #define PROG_LOCAL 0 // 1: Programación local, 0: Programación ACCESS POINT
 
-#define ENTORNO 1 // 1 = DEV, 2 = PROD
+#define ENTORNO 2 // 1 = DEV, 2 = PROD
 
 // ==============================================================================================
 // SELECCIÓN DE VERSIÓN DE TARJETA - DESCOMENTA SOLO UNA OPCIÓN
@@ -51,7 +51,7 @@
 #define PIN_MP3_BUSY 25      // Pin de busy del MP3
 #define LED_STATUS 26        // Pin del LED de estado
 #define PIN_MP3_UART_TX 27   // Pin de transmisión del UART1
-#define SALIDA_1 28          // Pin de salida 1
+#define SALIDA_1 17          // Pin de salida 1
 #define PIN_MP3_UART_RX 32   // Pin de recepción del UART1
 #define W5500_RST_PIN 33     // Reset W5500 (GPIO libre en TARJETA_SLT_V1)
 #define W5500_ENTROPY_PIN 36 // Pin ADC flotante para entropía SSLClient
