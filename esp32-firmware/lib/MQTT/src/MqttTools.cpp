@@ -10,12 +10,14 @@
 #include "EstructurasGlobales.h"
 #include "TimeManager.h"
 #include "VariablesGlobales.h"
+#include "mqtt_cert_jlinfra_wss.h"
 
-// Provista por la librería WiFiClientSecure del core arduino-esp32 (se compila
-// porque el proyecto sigue incluyendo <WiFiClientSecure.h> en wifi_mqtt_esp.cpp).
-// Valida el certificado del broker contra el bundle de CAs públicas embebido en
-// el firmware, sin necesidad de pegar un PEM a mano (Cloudflare usa CAs públicas estándar).
-extern "C" esp_err_t arduino_esp_crt_bundle_attach(void *conf);
+// NOTA: arduino_esp_crt_bundle_attach() (bundle de CAs de ESP-IDF) NO sirve aquí:
+// el core arduino-esp32 usado en este proyecto no trae un bundle embebido por defecto
+// (requeriría generar y embeber un .bin propio vía board_build.embed_files). En su lugar
+// se validan varias CAs raíz públicas de larga vigencia embebidas en mqtt_crt_wss
+// (ver mqtt_cert_jlinfra_wss.h), para tolerar que Cloudflare rote de emisor sin dejar
+// la flota sin validar TLS.
 
 // Buffer de topic usado solo para el log de depuración al reconstruir mensajes fragmentados.
 static String s_topicBuf;
@@ -128,7 +130,7 @@ bool MqttTools::init(bool ethernet)
     _config.path = "/";
     _config.client_id = _clientId.c_str();
     _config.buffer_size = 2048;
-    _config.crt_bundle_attach = arduino_esp_crt_bundle_attach;
+    _config.cert_pem = mqtt_crt_wss;
 
     _client = esp_mqtt_client_init(&_config);
     if (_client == nullptr)
