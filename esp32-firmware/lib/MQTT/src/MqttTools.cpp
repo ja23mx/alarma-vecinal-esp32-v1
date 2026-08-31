@@ -114,8 +114,10 @@ bool MqttTools::init(bool ethernet)
 
     // esp_mqtt_client se reconecta solo; evitar recrearlo en cada llamada de
     // gestionar_conexion_wifi() (se reintenta cada MQTT_CNF_TM_INT_RECONEXION mientras no hay red).
+    // Se devuelve el estado real (conectado o no) en vez de forzar true: gestionar_conexion_wifi()
+    // solo debe reintentar init() cuando de verdad no hay conexion.
     if (_client != nullptr)
-        return true;
+        return conectado;
 
     _topicCmd = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_2;
     _topicPubAck = TOPIC_SUS_1 + String(Data.numeroSerie) + TOPIC_SUS_3;
@@ -147,7 +149,18 @@ bool MqttTools::init(bool ethernet)
         return false;
     }
 
-    return true;
+    // esp_mqtt_client conecta de forma asincrona (esta funcion retornaria antes de
+    // que el handshake TLS/WS termine). gestionar_conexion_wifi() en wifi_mqtt_esp.cpp
+    // espera el comportamiento sincrono que tenia PubSubClient (conectado o fallido al
+    // retornar); se espera aqui con el mismo timeout de 30s que usaba el mqttReconnect() original.
+    unsigned long start = millis();
+    while (!conectado && millis() - start < 30000)
+        delay(100);
+
+    if (!conectado)
+        LOG("\r\n\r\nMQTT: timeout esperando conexion (wss).");
+
+    return conectado;
 }
 
 bool MqttTools::loop()
