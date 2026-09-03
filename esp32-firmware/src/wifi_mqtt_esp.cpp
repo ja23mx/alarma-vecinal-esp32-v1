@@ -227,6 +227,20 @@ static bool initEthernet(void)
 
 bool gestionar_conexion_wifi(void)
 {
+    // Si el WiFi ya esta conectado, no reiniciar la red (WiFi.begin()/scan tumba
+    // el socket que esp_mqtt_client ya tiene abierto o esta reconectando por su
+    // cuenta). Solo se reintenta el cliente MQTT: si ya existe, init() no hace
+    // nada disruptivo y devuelve el estado real (ver MqttTools::init()).
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        if (mqttManager.init())
+        {
+            envio_msg_init_broker();
+            return true;
+        }
+        return false;
+    }
+
     _usingEthernet = false;
 
     // Ethernet (W5500 vía arduino-libraries/Ethernet) no puede usarse con el cliente

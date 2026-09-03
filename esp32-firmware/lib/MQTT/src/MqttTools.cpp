@@ -165,6 +165,12 @@ bool MqttTools::init(bool ethernet)
 
 bool MqttTools::loop()
 {
+    if (dato_mqtt_callback)
+    {
+        dato_mqtt_callback = false;
+        nuevoPayload = true;
+    }
+
     revHbTimer();
     return conectado;
 }
