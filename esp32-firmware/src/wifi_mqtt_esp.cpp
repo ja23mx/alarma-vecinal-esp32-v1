@@ -65,6 +65,10 @@ bool mqtt_loop()
                 otaPendiente = false;
                 mqttManager.loop(); // dar tiempo al ACK
                 delay(500);
+                // Libera la sesion TLS de MQTT antes de abrir la de la descarga OTA (https):
+                // dos sesiones mbedTLS vivas a la vez pueden agotar el heap contiguo
+                // disponible y hacer fallar el handshake de la descarga.
+                mqttManager.stop();
                 ejecutarOTA(otaUrl);
             }
         }

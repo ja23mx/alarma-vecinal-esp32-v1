@@ -1,16 +1,20 @@
-// Certificados raíz (CA) para validar TLS del broker MQTT sobre wss (mqtt-sltnas.jlinfra.online),
-// servido detrás de Cloudflare. Cloudflare no usa una única CA fija: rota entre un grupo de
-// emisores públicos conocidos al renovar certificados. Para que la flota no se quede sin validar
-// TLS ante una rotación de emisor (sin necesitar firmware nuevo), se embeben varias raíces de
-// larga vigencia que cubren ese grupo típico, concatenadas en un solo buffer PEM
-// (mbedtls acepta múltiples certificados en un mismo buffer y los usa como conjunto de anclas de confianza).
+// Certificados raíz (CA) para validar TLS de los servicios de jlinfra.online detrás de
+// Cloudflare (broker MQTT wss y servidor de actualizaciones OTA). Cloudflare no usa una
+// única CA fija: rota entre un grupo de emisores públicos conocidos al renovar certificados.
+// Para que la flota no se quede sin validar TLS ante una rotación de emisor (sin necesitar
+// firmware nuevo), se embeben varias raíces de larga vigencia que cubren ese grupo típico,
+// concatenadas en un solo buffer PEM (mbedtls acepta múltiples certificados en un mismo
+// buffer y los usa como conjunto de anclas de confianza).
+//
+// Incluido por MqttTools.cpp (broker MQTT) y ota_esp.cpp (descarga OTA vía HTTPS) — `static`
+// para que cada .cpp que lo incluya tenga su propia copia y no choquen símbolos al linkear.
 //
 // Incluidas (todas raíces auto-firmadas, no cadenas intermedias):
 //  - GTS Root R4  (Google Trust Services, ECC) - valida hasta 22-06-2036
 //  - GTS Root R1  (Google Trust Services, RSA) - valida hasta 22-06-2036
 //  - ISRG Root X1 (Let's Encrypt)               - valida hasta 04-06-2035
 //  - DigiCert Global Root CA                    - valida hasta 10-11-2031
-const char mqtt_crt_wss[] PROGMEM = R"rawliteral(
+static const char mqtt_crt_wss[] PROGMEM = R"rawliteral(
 -----BEGIN CERTIFICATE-----
 MIICCTCCAY6gAwIBAgINAgPlwGjvYxqccpBQUjAKBggqhkjOPQQDAzBHMQswCQYD
 VQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEUMBIG

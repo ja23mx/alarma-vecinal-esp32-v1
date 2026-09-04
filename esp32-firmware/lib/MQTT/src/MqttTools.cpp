@@ -175,6 +175,17 @@ bool MqttTools::loop()
     return conectado;
 }
 
+void MqttTools::stop()
+{
+    if (_client == nullptr)
+        return;
+
+    esp_mqtt_client_stop(_client);
+    esp_mqtt_client_destroy(_client);
+    _client = nullptr;
+    conectado = false;
+}
+
 bool MqttTools::publishAck(const String &msg)
 {
     if (!conectado)

@@ -101,6 +101,16 @@ public:
      */
     bool publish(const char* topic, const String& payload, bool retain);
 
+    /**
+     * @brief Detiene el cliente MQTT y libera su sesión TLS.
+     *
+     * Usar antes de abrir una segunda conexión TLS simultánea (p. ej. la descarga
+     * OTA por HTTPS) — dos sesiones mbedTLS vivas a la vez pueden agotar el heap
+     * contiguo disponible. Seguro de llamar aunque el dispositivo vaya a reiniciar
+     * justo después (caso de uso actual en ejecutarOTA()).
+     */
+    void stop();
+
     bool conectado    = false; ///< true si el cliente está conectado al broker.
     bool nuevoPayload = false; ///< true cuando hay un nuevo payload sin procesar.
 
