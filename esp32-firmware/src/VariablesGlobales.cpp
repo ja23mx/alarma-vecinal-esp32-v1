@@ -15,8 +15,8 @@ int16_t config_red; // Variable global para la configuración de la red, 1=ether
 
 ///// MQTT VARIABLES //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-const char *mqtt_server = "mqtt.av.jlinfra.online"; // Cambia por tu broker
-uint16_t mqtt_port = 8883;                          // Puerto seguro MQTT
+const char *mqtt_server = "mqtt-sltnas.jlinfra.online"; // Broker MQTT sobre wss (Cloudflare, solo HTTP(S)/WS)
+uint16_t mqtt_port = 443;                               // Puerto wss
 const char *mqtt_user = "mqtt_user";                // Usuario MQTT
 const char *mqtt_pass = "5457kzs07";                // Contraseña MQTT
 

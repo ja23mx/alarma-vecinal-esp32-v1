@@ -65,6 +65,10 @@ bool mqtt_loop()
                 otaPendiente = false;
                 mqttManager.loop(); // dar tiempo al ACK
                 delay(500);
+                // Libera la sesion TLS de MQTT antes de abrir la de la descarga OTA (https):
+                // dos sesiones mbedTLS vivas a la vez pueden agotar el heap contiguo
+                // disponible y hacer fallar el handshake de la descarga.
+                mqttManager.stop();
                 ejecutarOTA(otaUrl);
             }
         }
@@ -227,30 +231,41 @@ static bool initEthernet(void)
 
 bool gestionar_conexion_wifi(void)
 {
-    _usingEthernet = false;
-
-    // Intentar Ethernet primero
-    if (initEthernet())
+    // Si el WiFi ya esta conectado, no reiniciar la red (WiFi.begin()/scan tumba
+    // el socket que esp_mqtt_client ya tiene abierto o esta reconectando por su
+    // cuenta). Solo se reintenta el cliente MQTT: si ya existe, init() no hace
+    // nada disruptivo y devuelve el estado real (ver MqttTools::init()).
+    if (WiFi.status() == WL_CONNECTED)
     {
-        TimeManager::getInstance().init();
-        if (mqttManager.init(true))
+        if (mqttManager.init())
         {
-            _usingEthernet = true;
             envio_msg_init_broker();
-            Serial.print("\r\n\r\nMQTT sobre Ethernet inicializado.");
             return true;
         }
-        Serial.print("\r\n\r\nMQTT Ethernet fallido. Intentando WiFi...");
+        return false;
     }
 
-    // Fallback a WiFi
+    _usingEthernet = false;
+
+    // Ethernet (W5500 vía arduino-libraries/Ethernet) no puede usarse con el cliente
+    // MQTT actual (esp_mqtt_client requiere la pila lwIP, que el W5500 no integra en
+    // este proyecto). Se deja conectado igualmente por si se usa para algo mas (NTP, etc.),
+    // pero MQTT solo se inicializa sobre WiFi. Ver MqttTools.h.
+    if (initEthernet())
+    {
+        _usingEthernet = true;
+        TimeManager::getInstance().init();
+        Serial.print("\r\n\r\nEthernet conectado. MQTT requiere WiFi, intentando WiFi...");
+    }
+
     if (init_conexion_wifi())
     {
-        TimeManager::getInstance().init();
-        if (mqttManager.init(false))
+        if (!_usingEthernet)
+            TimeManager::getInstance().init();
+        if (mqttManager.init())
         {
             envio_msg_init_broker();
-            Serial.print("\r\n\r\nMQTT sobre WiFi inicializado.");
+            Serial.print("\r\n\r\nMQTT sobre WiFi (wss) inicializado.");
             return true;
         }
         Serial.print("\r\n\r\nError al inicializar MQTT sobre WiFi.");

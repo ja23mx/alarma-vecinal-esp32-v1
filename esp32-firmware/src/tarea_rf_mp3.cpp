@@ -66,7 +66,7 @@ void tareaProcesos(void *pvParameters)
 #ifdef VOZ_ENABLE
     delay(3000);
     mp3_init();
-    proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
+    // proc_cmd_play_pista_msg(CONST_MP3_SYST_WAKE_UP); // Reproduce la pista de audio de despertar
 #endif
 
     // ✅ Verificar inicialización

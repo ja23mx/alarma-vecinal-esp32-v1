@@ -123,9 +123,12 @@ void loop()
         conexion_mqtt = mqtt_loop(); // Llamar a la función de bucle MQTT
 
         if (conexion_mqtt)
-          blink_led_mqtt(0);      // Llamar a la función de parpadeo del LED MQTT
-        else
-          conexion_wifi = false;  // Forzar reconexión por rama else
+          blink_led_mqtt(0); // Llamar a la función de parpadeo del LED MQTT
+        else if (WiFi.status() != WL_CONNECTED)
+          conexion_wifi = false; // WiFi realmente caido: forzar reconexión completa
+        // Si el WiFi sigue conectado, no se toca la red: esp_mqtt_client se
+        // reconecta solo. Reiniciar WiFi aqui por un hiccup transitorio de MQTT
+        // tumba el socket que esp_mqtt_client ya esta recuperando por su cuenta.
 
         en_loop_mqtt = false;   // Desactivar el bucle MQTT
         tiempo_mqtt = millis(); // Almacenar el tiempo actual

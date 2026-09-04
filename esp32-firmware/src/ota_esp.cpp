@@ -1,10 +1,12 @@
 #include "ota_esp.h"
 #include "wifi_mqtt_esp.h"
 #include "LogSistema.h"
+#include "mqtt_cert_jlinfra_wss.h"
 
 #include <Update.h>
 #include <Ethernet.h>
 #include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
 static void parseUrl(const char *url, char *host, uint16_t &port, char *path)
@@ -118,9 +120,25 @@ static void otaEthernet(const char *host, uint16_t port, const char *path)
 
 static void otaWiFi(const char *url)
 {
-    WiFiClient wClient;
     HTTPClient http;
-    http.begin(wClient, url);
+
+    // El servidor de OTA quedo detras de Cloudflare (igual que el broker MQTT): ya no
+    // acepta HTTP plano. http.begin(client, url) fija el puerto segun el esquema de la
+    // URL, pero conecta usando el cliente que se le pase — un WiFiClient plano intenta
+    // TCP sin TLS incluso contra un puerto/host que exige TLS, y Cloudflare responde 400.
+    WiFiClientSecure sClient;
+    WiFiClient wClient;
+    bool esHttps = strncmp(url, "https://", 8) == 0;
+
+    if (esHttps)
+    {
+        sClient.setCACert(mqtt_crt_wss);
+        http.begin(sClient, url);
+    }
+    else
+    {
+        http.begin(wClient, url);
+    }
 
     int code = http.GET();
     if (code == HTTP_CODE_OK)
