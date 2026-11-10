@@ -74,3 +74,7 @@ examples/**/.vscode/.browse.c_cpp.db*
 examples/**/.vscode/c_cpp_properties.json
 examples/**/.vscode/launch.json
 examples/**/.vscode/ipch
+# ============================================================================
+# CREDENCIALES LOCALES DE DESARROLLO - nunca versionar
+# ============================================================================
+esp32-firmware/include/*.local.h

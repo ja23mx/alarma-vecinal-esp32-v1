@@ -39,6 +39,9 @@ bool getUsingEthernet(void) { return _usingEthernet; }
 // Crear una instancia del objeto MqttTools
 MqttTools mqttManager(mqtt_server, mqtt_port, mqtt_user, mqtt_pass);
 
+// Detiene el cliente MQTT (tarea + sesion TLS) antes del modo AP de programacion.
+void mqtt_detener_para_ap(void) { mqttManager.stop(); }
+
 bool mqtt_loop()
 {
     if (_usingEthernet)

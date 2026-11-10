@@ -8,6 +8,8 @@
 #include "LogSistema.h"
 #include "MonitorRAM.h"
 #include "VariablesGlobales.h"
+#include "wifi_mqtt_esp.h"
+#include "CredencialesDev.h"
 
 #include <Update.h>
 #define U_PART U_SPIFFS
@@ -75,7 +77,7 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
   { // Modo normal: conectar a la red WiFi como estacion (STA).
     LOG("\r\n\r\nPROG_LOCAL\r\nWIFI CONECTANDO...");
     WiFi.mode(WIFI_STA);
-    WiFi.begin("PuntoDeAcceso", "#TLWN-7200NDMX2148"); // Conectar a la red
+    WiFi.begin(DEV_WIFI_SSID, DEV_WIFI_PASS); // Conectar a la red (credenciales en CredencialesDev.local.h)
     // "REDLOCAL", "TLWN7200NDMX2148"
     delay(2000);
     // Esperar hasta conectar
@@ -89,6 +91,13 @@ uint8_t ServerWeb::begin(uint8_t origenConfig)
   }
   else
   {
+
+    // Liberar radio y heap antes del AP: sin MQTT ni STA asociada al router, el AP
+    // respeta el canal elegido (con la STA conectada, el AP se fuerza al canal del router).
+    mqtt_detener_para_ap();
+    WiFi.setAutoReconnect(false);
+    WiFi.disconnect(false); // mantiene la STA habilitada (la pagina /wifi la usa para probar redes)
+    delay(200);
 
     // Configurar el ESP32 como Access Point y modo estacion (AP+STA).
     WiFi.mode(WIFI_AP_STA);

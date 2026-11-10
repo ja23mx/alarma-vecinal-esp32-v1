@@ -5,6 +5,7 @@
 #include "DataManager.h"
 #include "LogSistema.h"
 #include "Constantes.h"
+#include "CredencialesDev.h"
 
 DataManager Data; // Instancia global
 
@@ -151,8 +152,9 @@ void DataManager::rstData(void)
     }
     else
     {
-        // guardarRedWiFi("REDLOCAL", "TLWN7200NDMX2148"); // Guardar red WiFi de ejemplo
-        guardarRedWiFi("IZZI-4C0B", "F0AF854D4C0B"); // Guardar red WiFi de ejemplo
+        // Red WiFi de desarrollo (CredencialesDev.local.h); sin ella no se guarda ninguna
+        if (DEV_WIFI_SSID[0] != '\0')
+            guardarRedWiFi(DEV_WIFI_SSID, DEV_WIFI_PASS);
     }
 
     rstDataCnfCtrl(); // Restablecer datos de configuración de controles

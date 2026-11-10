@@ -12,3 +12,6 @@ void msgPayloadCtrlMqtt(void);
 bool gestionar_conexion_wifi(void);
 bool init_conexion_wifi(void);
 bool getUsingEthernet(void);
+
+// Libera MQTT/TLS antes de levantar el AP de programacion (el reinicio al salir lo restablece)
+void mqtt_detener_para_ap(void);

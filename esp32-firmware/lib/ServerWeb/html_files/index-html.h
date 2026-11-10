@@ -261,7 +261,7 @@ const char const_html_ccs_index[] PROGMEM = R"rawliteral(
             position: absolute;
             bottom: 0;
             /* Coloca la línea en la parte inferior del contenedor */
-            left: 35px;
+            left: 5px;
             /* Ajusta este valor para que coincida con el inicio del texto */
             right: 0;
             /* Extiende la línea hasta el borde derecho */
